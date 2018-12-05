@@ -31,7 +31,7 @@ void cross(float* ret, float a1, float a2, float a3,
 
 // takes models and puts all vertices into a common Array
 // allows the common array to be passed into OpenGL
-float* makeVertexArray(float* modelData, Model** models,
+void makeVertexArray(float* modelData, Model** models,
         int numModels, int totalNumVerts);
 
 
