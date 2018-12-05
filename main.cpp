@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
-  int numModels = 2;
+  const int numModels = 2;
   Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
   Model* models[numModels] = {modelGraph, modelPot};
