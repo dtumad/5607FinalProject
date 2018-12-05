@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
   fun.max_x = bounds[1];
   fun.min_y = bounds[2];
   fun.max_y = bounds[3];
-  fun.sample_rate = .1;
+  fun.sample_rate = .05;
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
   fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.min_y, 0, 1);
   fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.max_y, 0, 1);
   fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.max_y, 0, 1);
-  for (int i = 1; i < 5; i++) instances[i].rotate = true;
+  for (int i = 0; i < 5; i++) instances[i].rotate = false;
 
   //// Allocate Texture 0 (Wood) ///////
   SDL_Surface* surface = SDL_LoadBMP("wood.bmp");

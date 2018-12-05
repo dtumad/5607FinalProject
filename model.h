@@ -23,7 +23,7 @@ void helperMakeSample(Model* model, Function fun, float x, float y, int* i);
 
 // loads a single vertex with given offsets and funciton
 void helperMakeVertex(Model* model, Function fun,
-  float x, float y, int* i, float* normal);
+  float x, float y, int* i, float n1, float n2, float n3);
 
 // cross product of two vectors, returned as
 void cross(float* ret, float a1, float a2, float a3,

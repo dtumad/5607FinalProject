@@ -58,33 +58,33 @@ void helperMakeSample(Model* model, Function fun, float x, float y, int* i) {
   // calculate normal vector for first triangle
   cross(normal, d, 0, f(x+d,y)-f(x,y), 0, d, f(x,y+d)-f(x,y));
   // create first triangle for this sample
-  helperMakeVertex(model, fun, x,   y,   i, normal);
-  helperMakeVertex(model, fun, x+d, y,   i, normal);
-  helperMakeVertex(model, fun, x,   y+d, i, normal);
+  helperMakeVertex(model, fun, x,   y,   i, normal[0], normal[1], normal[2]);
+  helperMakeVertex(model, fun, x+d, y,   i, normal[0], normal[1], normal[2]);
+  helperMakeVertex(model, fun, x,   y+d, i, normal[0], normal[1], normal[2]);
 
   // calculate normal vector for second triangle
   cross(normal, 0, d, f(x+d,y+d)-f(x+d,y), -d, d, f(x,y+d)-f(x+d,y));
   // create second triangle for this sample
-  helperMakeVertex(model, fun, x+d, y,   i, normal);
-  helperMakeVertex(model, fun, x,   y+d, i, normal);
-  helperMakeVertex(model, fun, x+d, y+d, i, normal);
+  helperMakeVertex(model, fun, x+d, y,   i, normal[0], normal[1], normal[2]);
+  helperMakeVertex(model, fun, x,   y+d, i, normal[0], normal[1], normal[2]);
+  helperMakeVertex(model, fun, x+d, y+d, i, normal[0], normal[1], normal[2]);
 }
 
 // loads a single vertex with given offsets and funciton
 void helperMakeVertex(Model* model, Function fun,
-                        float x, float y, int* i, float* normal) {
+                        float x, float y, int* i, float n1, float n2, float n3) {
   // position
   model->vertices[(*i)++] = x;
   model->vertices[(*i)++] = y;
   model->vertices[(*i)++] = fun.f(x,y);
-  // normal
-  model->vertices[(*i)++] = normal[0];
-  model->vertices[(*i)++] = normal[1];
-  model->vertices[(*i)++] = normal[2];
   // U and V
-  // TODO: THIS IS THE BIGGEST PROBLEM RIGHT NOW
-  model->vertices[(*i)++] = rand();
-  model->vertices[(*i)++] = rand();
+  model->vertices[(*i)++] = 0;
+  model->vertices[(*i)++] = 1;
+  // normal
+  model->vertices[(*i)++] = n1;
+  model->vertices[(*i)++] = n2;
+  model->vertices[(*i)++] = n3;
+
 }
 
 // cross product of two vectors, returned as
@@ -94,7 +94,7 @@ void cross(float* ret, float a1, float a2, float a3,
   ret[1] = a3*b1 - a1*b3;
   ret[2] = a1*b2 - a2*b1;
   // TODO: This is hacky, shouldn't need divide by 10
-  float d = sqrt(ret[0]*ret[0]+ret[1]*ret[1]+ret[2]*ret[2])/10;
+  float d = sqrt(ret[0]*ret[0]+ret[1]*ret[1]+ret[2]*ret[2]);
   ret[0] /= d; ret[1] /= d; ret[2] /= d;
 }
 
@@ -119,5 +119,5 @@ void fillInstance(Instance* i, Model* m, int t,
   i->textureIndex = t;
   i->objx = x; i->objy = y; i->objz = z; i->scale = s;
   i->rotate = false;
-  i->colR = 1; i->colG = 1; i->colB = 1;
+  i->colR = .2; i->colG = .3; i->colB = .1;
 }
