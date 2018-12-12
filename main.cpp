@@ -25,7 +25,7 @@ const char* INSTRUCTIONS =
 #include <fstream>
 #include <string>
 #include "model.h"
-#include "function.h"
+// #include "function.h"
 using namespace std;
 
 int screenWidth = 1200;
@@ -86,21 +86,13 @@ int main(int argc, char* argv[]) {
 	}
   //TODO: This should be much more generalized
   int bounds[4] = {0,10,0,10};
-  Function fun1;
-  fun1.f = [](float x, float y){return .01*(x-1)*(x-5)*(y-3)*(y-10)*(x-10);};
-  fun1.min_x = bounds[0];
-  fun1.max_x = bounds[1];
-  fun1.min_y = bounds[2];
-  fun1.max_y = bounds[3];
-  fun1.sample_rate = .05;
-
-  Function fun2;
-  fun2.f = [](float x, float y){return .01*(x-6)*(x-3)*(y-2)*(y-1)*(x-8);};
-  fun2.min_x = bounds[0];
-  fun2.max_x = bounds[1];
-  fun2.min_y = bounds[2];
-  fun2.max_y = bounds[3];
-  fun2.sample_rate = .05;
+  Function fun;
+  fun.parseFunctionFromString((char*) "");
+  fun.min_x = bounds[0];
+  fun.max_x = bounds[1];
+  fun.min_y = bounds[2];
+  fun.max_y = bounds[3];
+  fun.sample_rate = .05;
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
