@@ -52,18 +52,17 @@ Model* loadModelFromFunction(Function fun, int* prevStartVertex) {
 // creates two triangles to fill in a unit in the x-y plane
 void helperMakeSample(Model* model, Function fun, float x, float y, int* i) {
   float normal[3];
-  auto f = fun.f;
   float d = fun.sample_rate;
 
   // calculate normal vector for first triangle
-  cross(normal, d, 0, f(x+d,y)-f(x,y), 0, d, f(x,y+d)-f(x,y));
+  cross(normal, d, 0, fun.eval(x+d,y)-fun.eval(x,y), 0, d, fun.eval(x,y+d)-fun.eval(x,y));
   // create first triangle for this sample
   helperMakeVertex(model, fun, x,   y,   i, normal[0], normal[1], normal[2]);
   helperMakeVertex(model, fun, x+d, y,   i, normal[0], normal[1], normal[2]);
   helperMakeVertex(model, fun, x,   y+d, i, normal[0], normal[1], normal[2]);
 
   // calculate normal vector for second triangle
-  cross(normal, 0, d, f(x+d,y+d)-f(x+d,y), -d, d, f(x,y+d)-f(x+d,y));
+  cross(normal, 0, d, fun.eval(x+d,y+d)-fun.eval(x+d,y), -d, d, fun.eval(x,y+d)-fun.eval(x+d,y));
   // create second triangle for this sample
   helperMakeVertex(model, fun, x+d, y,   i, normal[0], normal[1], normal[2]);
   helperMakeVertex(model, fun, x,   y+d, i, normal[0], normal[1], normal[2]);
@@ -76,7 +75,7 @@ void helperMakeVertex(Model* model, Function fun,
   // position
   model->vertices[(*i)++] = x;
   model->vertices[(*i)++] = y;
-  model->vertices[(*i)++] = fun.f(x,y);
+  model->vertices[(*i)++] = fun.eval(x,y);
   // U and V
   model->vertices[(*i)++] = 0;
   model->vertices[(*i)++] = 1;

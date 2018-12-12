@@ -25,7 +25,7 @@ const char* INSTRUCTIONS =
 #include <fstream>
 #include <string>
 #include "model.h"
-#include "function.h"
+// #include "function.h"
 using namespace std;
 
 int screenWidth = 1200;
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
   //TODO: This should be much more generalized
   int bounds[4] = {0,10,0,10};
   Function fun;
-  fun.f = [](float x, float y){return .01*(x-1)*(x-5)*(y-3)*(y-10)*(x-10);};
+  fun.parseFunctionFromString((char*) "");
   fun.min_x = bounds[0];
   fun.max_x = bounds[1];
   fun.min_y = bounds[2];
