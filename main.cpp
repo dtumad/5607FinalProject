@@ -86,18 +86,26 @@ int main(int argc, char* argv[]) {
 	}
   //TODO: This should be much more generalized
   int bounds[4] = {0,10,0,10};
-  Function fun;
-  fun.f = [](float x, float y){return .01*(x-1)*(x-5)*(y-3)*(y-10)*(x-10);};
-  fun.min_x = bounds[0];
-  fun.max_x = bounds[1];
-  fun.min_y = bounds[2];
-  fun.max_y = bounds[3];
-  fun.sample_rate = .05;
+  Function fun1;
+  fun1.f = [](float x, float y){return .01*(x-1)*(x-5)*(y-3)*(y-10)*(x-10);};
+  fun1.min_x = bounds[0];
+  fun1.max_x = bounds[1];
+  fun1.min_y = bounds[2];
+  fun1.max_y = bounds[3];
+  fun1.sample_rate = .05;
+
+  Function fun2;
+  fun2.f = [](float x, float y){return .01*(x-6)*(x-3)*(y-2)*(y-1)*(x-8);};
+  fun2.min_x = bounds[0];
+  fun2.max_x = bounds[1];
+  fun2.min_y = bounds[2];
+  fun2.max_y = bounds[3];
+  fun2.sample_rate = .05;
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
   const int numModels = 2;
-  Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
+  Model* modelGraph = loadModelFromFunction(fun1, &totalNumVerts);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
   Model* models[numModels] = {modelGraph, modelPot};
   float* modelData = new float[(totalNumVerts)*8];
@@ -107,10 +115,10 @@ int main(int argc, char* argv[]) {
   int loadedInstances = 0;
   Instance instances[5];
   fillInstance(&instances[loadedInstances++], modelGraph, -1, 0, 0, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.max_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.max_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.min_x, fun1.min_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.max_x, fun1.min_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.min_x, fun1.max_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.max_x, fun1.max_y, 0, 1);
   for (int i = 0; i < 5; i++) instances[i].rotate = false;
 
   //// Allocate Texture 0 (Wood) ///////
@@ -167,7 +175,7 @@ int main(int argc, char* argv[]) {
   GLuint vbo[1];
   glGenBuffers(1, vbo);  //Create 1 buffer called vbo
   glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); //Set the vbo as the active array buffer (Only one buffer can be active at a time)
-  glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STATIC_DRAW); //upload vertices to vbo
+  glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW); //upload vertices to vbo
   //GL_STATIC_DRAW means we won't change the geometry, GL_DYNAMIC_DRAW = geometry changes infrequently
   //GL_STREAM_DRAW = geom. changes frequently.  This effects which types of GPU memory is used
 
@@ -196,6 +204,7 @@ int main(int argc, char* argv[]) {
 
   printf("%s\n",INSTRUCTIONS);
 
+  bool boogeyman = false;
   //Event Loop (Loop forever processing each event as fast as possible)
   SDL_Event windowEvent;
   bool quit = false;
@@ -236,6 +245,15 @@ int main(int argc, char* argv[]) {
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
 
+      else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
+        Function switchfun = fun1;
+        if (boogeyman) {switchfun = fun2;}
+        boogeyman = !boogeyman;
+        int dummy = 0;
+        Model* newModel = loadModelFromFunction(switchfun, &dummy);
+        copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+      }
     }
 
     // Clear the screen to default color

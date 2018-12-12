@@ -35,8 +35,6 @@ void makeVertexArray(float* modelData, Model** models,
         int numModels, int totalNumVerts);
 
 
-
-
 // represents one instance of an object in the world
 // TODO: I don't think scale works correctly
 struct Instance_t {

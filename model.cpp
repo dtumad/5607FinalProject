@@ -111,7 +111,7 @@ void makeVertexArray(float* modelData, Model** models,
 }
 
 
-// HELPER FUNCITONS FOR INSTANCES
+// HELPER FUNCTIONS FOR INSTANCES
 // helper function for creating an instance
 void fillInstance(Instance* i, Model* m, int t,
                     float x, float y, float z, float s) {
