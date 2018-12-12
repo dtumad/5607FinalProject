@@ -24,6 +24,7 @@ const char* INSTRUCTIONS =
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include "model.h"
 // #include "function.h"
 using namespace std;
@@ -86,6 +87,7 @@ int main(int argc, char* argv[]) {
 	}
   //TODO: This should be much more generalized
   int bounds[4] = {0,10,0,10};
+  vector<Function> functions;
   Function fun;
   fun.parseFunctionFromString((char*) "");
   fun.min_x = bounds[0];
@@ -93,25 +95,27 @@ int main(int argc, char* argv[]) {
   fun.min_y = bounds[2];
   fun.max_y = bounds[3];
   fun.sample_rate = .05;
+  functions.push_back(fun);
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
   const int numModels = 2;
-  Model* modelGraph = loadModelFromFunction(fun1, &totalNumVerts);
+  vector<Model*> models;
+  Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
+  models.push_back(modelGraph);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
-  Model* models[numModels] = {modelGraph, modelPot};
+  models.push_back(modelPot);
   float* modelData = new float[(totalNumVerts)*8];
   makeVertexArray(modelData, models, numModels, totalNumVerts);
 
   // Load instances based on each of the models for walls and doors
   int loadedInstances = 0;
-  Instance instances[5];
-  fillInstance(&instances[loadedInstances++], modelGraph, -1, 0, 0, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.min_x, fun1.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.max_x, fun1.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.min_x, fun1.max_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun1.max_x, fun1.max_y, 0, 1);
-  for (int i = 0; i < 5; i++) instances[i].rotate = false;
+  vector<Instance*> instances;
+  instances.push_back(makeInstance(modelGraph, -1, 0, 0, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.min_x, fun.min_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.max_x, fun.min_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.min_x, fun.max_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.max_x, fun.max_y, 0, 1));
 
   //// Allocate Texture 0 (Wood) ///////
   SDL_Surface* surface = SDL_LoadBMP("wood.bmp");
@@ -277,7 +281,7 @@ int main(int argc, char* argv[]) {
     glUniform1i(glGetUniformLocation(texturedShader, "tex1"), 1);
 
     glBindVertexArray(vao);
-    drawGeometry(texturedShader, instances, loadedInstances);
+    drawGeometry(texturedShader, instances);
 
     SDL_GL_SwapWindow(window); //Double buffering
 
@@ -294,24 +298,23 @@ int main(int argc, char* argv[]) {
 }
 
 // draw all the instaces in passed in array using the given shaderProgram
-void drawGeometry(int shaderProgram, Instance* instances, int numInstances){
+void drawGeometry(int shaderProgram, vector<Instance*> instances){
   GLint uniTexID = glGetUniformLocation(shaderProgram, "texID");
 
-  for (int i = 0; i < numInstances; i++) {
-    Instance inst = instances[i];
+  for (Instance* inst : instances) {
 
     // set color for non textured things
-    if (inst.textureIndex == -1) {
+    if (inst->textureIndex == -1) {
       GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");
-    	glm::vec3 colVec(inst.colR,inst.colG,inst.colB);
+    	glm::vec3 colVec(inst->colR,inst->colG,inst->colB);
     	glUniform3fv(uniColor, 1, glm::value_ptr(colVec));
     }
 
     // move the objects around the world
     glm::mat4 m = glm::mat4();
-    m = glm::translate(m,glm::vec3(inst.objx,inst.objy,inst.objz));
-    m = glm::scale(m,glm::vec3(inst.scale, inst.scale, inst.scale));
-    if (inst.rotate) {
+    m = glm::translate(m,glm::vec3(inst->objx,inst->objy,inst->objz));
+    m = glm::scale(m,glm::vec3(inst->scale, inst->scale, inst->scale));
+    if (inst->rotate) {
       m = glm::rotate(m,timePast * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
       m = glm::rotate(m,timePast * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
     }
