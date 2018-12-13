@@ -47,7 +47,7 @@ GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 bool fullscreen = false;
 void Win2PPM(int width, int height);
 
-void drawGeometry(int shaderProgram, Instance* instances, int numInstances);
+void drawGeometry(int shaderProgram, vector<Instance*> instances);
 
 int main(int argc, char* argv[]) {
   if (argc < 1) {
@@ -242,8 +242,8 @@ int main(int argc, char* argv[]) {
       }
 
       else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
-        Function switchfun = fun1;
-        if (boogeyman) {switchfun = fun2;}
+        Function switchfun = fun;
+        if (boogeyman) {switchfun = fun;}
         boogeyman = !boogeyman;
         int dummy = 0;
         Model* newModel = loadModelFromFunction(switchfun, &dummy);
@@ -323,10 +323,10 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances){
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(m)); //pass model matrix to shader
 
     //Set which texture to use (-1 = no texture)
-    glUniform1i(uniTexID, instances[i].textureIndex);
+    glUniform1i(uniTexID, inst->textureIndex);
 
     //Draw an instance of the model (at the position & orientation specified by the model matrix above)
-    glDrawArrays(GL_TRIANGLES, instances[i].model->startVertex, instances[i].model->numVertices); //(Primitive Type, Start Vertex, Num Verticies)
+    glDrawArrays(GL_TRIANGLES, inst->model->startVertex, inst->model->numVertices); //(Primitive Type, Start Vertex, Num Verticies)
 
   }
 }

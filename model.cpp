@@ -102,7 +102,7 @@ void cross(float* ret, float a1, float a2, float a3,
 void makeVertexArray(float* modelData, vector<Model*> models,
                         int numModels, int totalNumVerts) {
   int counter = 0;
-  for(Model m : models) {
+  for(Model* m : models) {
     copy(m->vertices, m->vertices + m->numVertices*8, modelData + counter);
     counter += m->numVertices*8;
   }
