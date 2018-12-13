@@ -362,6 +362,10 @@ printf("test3\n");
             // and color?
             printf("%s\n", buf);
         }
+        ImGui::SameLine();
+        if (ImGui::Button("Reset")) {
+           printf("Reset\n");
+        }
         ImGui::End();
     }
 
