@@ -24,6 +24,7 @@ const char* INSTRUCTIONS =
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include "model.h"
 
 #include "imgui-master/imgui.h"
@@ -62,7 +63,7 @@ GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 bool fullscreen = false;
 void Win2PPM(int width, int height);
 
-void drawGeometry(int shaderProgram, Instance* instances, int numInstances);
+void drawGeometry(int shaderProgram, vector<Instance*> instances);
 
 
 
@@ -150,6 +151,7 @@ printf("test3\n");
 	}
   //TODO: This should be much more generalized
   int bounds[4] = {0,10,0,10};
+  vector<Function> functions;
   Function fun;
   fun.parseFunctionFromString((char*) "");
   fun.min_x = bounds[0];
@@ -157,25 +159,27 @@ printf("test3\n");
   fun.min_y = bounds[2];
   fun.max_y = bounds[3];
   fun.sample_rate = .05;
+  functions.push_back(fun);
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
   const int numModels = 2;
+  vector<Model*> models;
   Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
+  models.push_back(modelGraph);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
-  Model* models[numModels] = {modelGraph, modelPot};
+  models.push_back(modelPot);
   float* modelData = new float[(totalNumVerts)*8];
   makeVertexArray(modelData, models, numModels, totalNumVerts);
 
   // Load instances based on each of the models for walls and doors
   int loadedInstances = 0;
-  Instance instances[5];
-  fillInstance(&instances[loadedInstances++], modelGraph, -1, 0, 0, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.max_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.max_y, 0, 1);
-  for (int i = 0; i < 5; i++) instances[i].rotate = false;
+  vector<Instance*> instances;
+  instances.push_back(makeInstance(modelGraph, -1, 0, 0, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.min_x, fun.min_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.max_x, fun.min_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.min_x, fun.max_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun.max_x, fun.max_y, 0, 1));
 
   //// Allocate Texture 0 (Wood) ///////
   SDL_Surface* surface = SDL_LoadBMP("wood.bmp");
@@ -231,7 +235,7 @@ printf("test3\n");
   GLuint vbo[1];
   glGenBuffers(1, vbo);  //Create 1 buffer called vbo
   glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); //Set the vbo as the active array buffer (Only one buffer can be active at a time)
-  glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STATIC_DRAW); //upload vertices to vbo
+  glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW); //upload vertices to vbo
   //GL_STATIC_DRAW means we won't change the geometry, GL_DYNAMIC_DRAW = geometry changes infrequently
   //GL_STREAM_DRAW = geom. changes frequently.  This effects which types of GPU memory is used
 
@@ -260,6 +264,7 @@ printf("test3\n");
 
   printf("%s\n",INSTRUCTIONS);
 
+  bool boogeyman = false;
   //Event Loop (Loop forever processing each event as fast as possible)
   bool show_demo_window = true;
   bool show_another_window = false;
@@ -308,6 +313,15 @@ printf("test3\n");
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
 
+      else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
+        Function switchfun = fun;
+        if (boogeyman) {switchfun = fun;}
+        boogeyman = !boogeyman;
+        int dummy = 0;
+        Model* newModel = loadModelFromFunction(switchfun, &dummy);
+        copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+      }
     }
 
 
@@ -340,7 +354,7 @@ printf("test3\n");
     glUniform1i(glGetUniformLocation(texturedShader, "tex1"), 1);
 
     glBindVertexArray(vao);
-    drawGeometry(texturedShader, instances, loadedInstances);
+    drawGeometry(texturedShader, instances);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
@@ -394,24 +408,23 @@ printf("test3\n");
 }
 
 // draw all the instaces in passed in array using the given shaderProgram
-void drawGeometry(int shaderProgram, Instance* instances, int numInstances){
+void drawGeometry(int shaderProgram, vector<Instance*> instances){
   GLint uniTexID = glGetUniformLocation(shaderProgram, "texID");
 
-  for (int i = 0; i < numInstances; i++) {
-    Instance inst = instances[i];
+  for (Instance* inst : instances) {
 
     // set color for non textured things
-    if (inst.textureIndex == -1) {
+    if (inst->textureIndex == -1) {
       GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");
-    	glm::vec3 colVec(inst.colR,inst.colG,inst.colB);
+    	glm::vec3 colVec(inst->colR,inst->colG,inst->colB);
     	glUniform3fv(uniColor, 1, glm::value_ptr(colVec));
     }
 
     // move the objects around the world
     glm::mat4 m = glm::mat4();
-    m = glm::translate(m,glm::vec3(inst.objx,inst.objy,inst.objz));
-    m = glm::scale(m,glm::vec3(inst.scale, inst.scale, inst.scale));
-    if (inst.rotate) {
+    m = glm::translate(m,glm::vec3(inst->objx,inst->objy,inst->objz));
+    m = glm::scale(m,glm::vec3(inst->scale, inst->scale, inst->scale));
+    if (inst->rotate) {
       m = glm::rotate(m,timePast * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
       m = glm::rotate(m,timePast * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
     }
@@ -420,10 +433,10 @@ void drawGeometry(int shaderProgram, Instance* instances, int numInstances){
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(m)); //pass model matrix to shader
 
     //Set which texture to use (-1 = no texture)
-    glUniform1i(uniTexID, instances[i].textureIndex);
+    glUniform1i(uniTexID, inst->textureIndex);
 
     //Draw an instance of the model (at the position & orientation specified by the model matrix above)
-    glDrawArrays(GL_TRIANGLES, instances[i].model->startVertex, instances[i].model->numVertices); //(Primitive Type, Start Vertex, Num Verticies)
+    glDrawArrays(GL_TRIANGLES, inst->model->startVertex, inst->model->numVertices); //(Primitive Type, Start Vertex, Num Verticies)
 
   }
 }
