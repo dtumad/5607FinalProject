@@ -25,6 +25,22 @@ const char* INSTRUCTIONS =
 #include <fstream>
 #include <string>
 #include "model.h"
+
+#include "imgui-master/imgui.h"
+#include "imgui-master/examples/imgui_impl_sdl.h"
+#include "imgui-master/examples/imgui_impl_opengl3.h"
+
+#if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
+#include <GL/gl3w.h>    // Initialize with gl3wInit()
+#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
+#include <GL/glew.h>    // Initialize with glewInit()
+#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
+#include <glad/glad.h>  // Initialize with gladLoadGL()
+#else
+#include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+#endif
+
+
 // #include "function.h"
 using namespace std;
 
@@ -48,6 +64,8 @@ void Win2PPM(int width, int height);
 
 void drawGeometry(int shaderProgram, Instance* instances, int numInstances);
 
+
+
 int main(int argc, char* argv[]) {
   if (argc < 1) {
     printf("Usage: ./display\n");
@@ -55,14 +73,22 @@ int main(int argc, char* argv[]) {
   }
   srand(time(0));
 
+printf("test3\n");
   // INITALIZE SDL AND OPENGL
   SDL_Init(SDL_INIT_VIDEO);  //Initialize Graphics (for OpenGL)
 
+
 	//Ask SDL to get a recent version of OpenGL (3.2 or greater)
+  const char* glsl_version = "#version 130";
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_DisplayMode current;
+    SDL_GetCurrentDisplayMode(0, &current);
 	//Create a window (offsetx, offsety, width, height, flags)
 	SDL_Window* window = SDL_CreateWindow("Graphing Calculator", 100, 100, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
@@ -72,6 +98,44 @@ int main(int argc, char* argv[]) {
 
 	//Create a context to draw in
 	SDL_GLContext context = SDL_GL_CreateContext(window);
+
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+     SDL_GetCurrentDisplayMode(0, &current);
+     //SDL_Window* gl_window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+     //SDL_GLContext gl_context = SDL_GL_CreateContext(gl_window);
+
+     SDL_GL_SetSwapInterval(1); // Enable vsync
+
+
+
+     #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
+         bool err = gl3wInit() != 0;
+     #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
+         bool err = glewInit() != GLEW_OK;
+     #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
+         bool err = gladLoadGL() == 0;
+     #else
+         bool err = false; // If you use IMGUI_IMPL_OPENGL_LOADER_CUSTOM, your loader is likely to requires some form of initialization.
+     #endif
+         if (err)
+         {
+             fprintf(stderr, "Failed to initialize OpenGL loader!\n");
+             return 1;
+         }
+
+     IMGUI_CHECKVERSION();
+     ImGui::CreateContext();
+     ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+     // Setup Platform/Renderer bindings
+     ImGui_ImplSDL2_InitForOpenGL(window, context);
+     ImGui_ImplOpenGL3_Init(glsl_version);
+
+     // Setup Style
+     ImGui::StyleColorsDark();
+
 
 	//Load OpenGL extentions with GLAD
 	if (gladLoadGLLoader(SDL_GL_GetProcAddress)){
@@ -145,7 +209,7 @@ int main(int argc, char* argv[]) {
   glGenTextures(1, &tex1);
 
   //Load the texture into memory
-  glActiveTexture(GL_TEXTURE1);
+   glActiveTexture(GL_TEXTURE1);
 
   glBindTexture(GL_TEXTURE_2D, tex1);
   //What to do outside 0-1 range
@@ -197,11 +261,19 @@ int main(int argc, char* argv[]) {
   printf("%s\n",INSTRUCTIONS);
 
   //Event Loop (Loop forever processing each event as fast as possible)
+  bool show_demo_window = true;
+  bool show_another_window = false;
+  ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+  char buf [250] = "test function";
+
+
   SDL_Event windowEvent;
   bool quit = false;
   bool dragging = false;
   while (!quit){
     while (SDL_PollEvent(&windowEvent)){  //inspect all events in the queue
+      ImGui_ImplSDL2_ProcessEvent(&windowEvent);
+
       if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_ESCAPE
                     || windowEvent.type == SDL_QUIT) {
         quit = true; //Exit event loop
@@ -238,6 +310,7 @@ int main(int argc, char* argv[]) {
 
     }
 
+
     // Clear the screen to default color
     glClearColor(.2f, 0.4f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -269,16 +342,49 @@ int main(int argc, char* argv[]) {
     glBindVertexArray(vao);
     drawGeometry(texturedShader, instances, loadedInstances);
 
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui::NewFrame();
+
+           // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+    {
+        static float f = 0.0f;
+        static int counter = 0;
+
+        ImGui::Begin("");                          // Create a window called "Hello, world!" and append into it.
+
+        ImGui::ColorEdit3("Graph Color", (float*)&color); // Edit 3 floats representing a color
+        ImGui::Text("Funtion: ");
+        ImGui::SameLine();
+        ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
+        if (ImGui::Button("Graph Function")){
+            //Call function with text;
+            // and color?
+            printf("%s\n", buf);
+        }
+        ImGui::End();
+    }
+
+    ImGui::Render();
+    SDL_GL_MakeCurrent(window, context);
+    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window); //Double buffering
 
   }
 
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplSDL2_Shutdown();
+  ImGui::DestroyContext();
+
+
   //Clean Up
-  glDeleteProgram(texturedShader);
-    glDeleteBuffers(1, vbo);
-    glDeleteVertexArrays(1, &vao);
+  //glDeleteProgram(texturedShader);
+  //glDeleteBuffers(1, vbo);
+  //lDeleteVertexArrays(1, &vao);
 
   SDL_GL_DeleteContext(context);
+  SDL_DestroyWindow(window);
   SDL_Quit();
   return 0;
 }
@@ -448,6 +554,8 @@ GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName){
 
   return program;
 }
+
+
 
 
 
