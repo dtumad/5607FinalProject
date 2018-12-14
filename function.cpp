@@ -16,7 +16,7 @@ bool Function::parseFunctionFromString(string input){
     return true;
   }
   catch(const std::exception& e) {
-    printf("Couldn't parse the expression %s\n", e.what());
+    //printf("Couldn't parse the expression %s\n", e.what());
     return false;
   }
 }
@@ -130,7 +130,7 @@ float Function::eval(float x, float y){
 // abuses the fact that FW handles anything without unnested ops
 // abuses the fact that W begins with '(' always
 void parseE(string e, Function* result) {
-  printf("Given E: %s\n", e.c_str());
+  //printf("Given E: %s\n", e.c_str());
   if (e.empty()) {
     return;
   }
@@ -157,7 +157,7 @@ void parseE(string e, Function* result) {
 // loads a function with the contents of this W term
 // abuses the fact that W terms start with '('
 void parseW(string w, Function* result) {
-  printf("Given W: %s\n", w.c_str());
+  //printf("Given W: %s\n", w.c_str());
   if (w.empty()) {
     throw runtime_error("empty string as a W expression");
   }
@@ -191,7 +191,7 @@ void parseW(string w, Function* result) {
 // load a function with the contents of this T term
 // abuses the fact that '+' only nests when in an E
 void parseT(string t, Function* result) {
-  printf("Given T: %s\n", t.c_str());
+  //printf("Given T: %s\n", t.c_str());
   if (t.empty()) {
     throw runtime_error("empty string as an P expression");
   }
@@ -232,7 +232,7 @@ void parseT(string t, Function* result) {
 // load a function for this F term
 // abuses the fact that NXY doesn't contain '('
 void parseF(string f, Function* result) {
-  printf("Given F: %s\n", f.c_str());
+  //printf("Given F: %s\n", f.c_str());
   if (f.empty()) {
     throw runtime_error("empty string as an F expression");
   }

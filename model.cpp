@@ -78,8 +78,8 @@ void helperMakeVertex(Model* model, Function fun,
   model->vertices[(*i)++] = y;
   model->vertices[(*i)++] = fun.eval(x,y);
   // U and V
-  model->vertices[(*i)++] = x*10;
-  model->vertices[(*i)++] = y*10;
+  model->vertices[(*i)++] = x*3;
+  model->vertices[(*i)++] = y*3;
   // normal
   model->vertices[(*i)++] = n1;
   model->vertices[(*i)++] = n2;
@@ -100,24 +100,24 @@ void cross(float* ret, float a1, float a2, float a3,
 
 // takes models and puts all vertices into a common Array
 // allows the common array to be passed into OpenGL
-void makeVertexArray(float* modelData, Model** models,
+void makeVertexArray(float* modelData, vector<Model*> models,
                         int numModels, int totalNumVerts) {
   int counter = 0;
-  for(int i = 0; i < numModels; i++) {
-    copy(models[i]->vertices, models[i]->vertices + models[i]->numVertices*8,
-          modelData + counter);
-    counter += models[i]->numVertices*8;
+  for(Model* m : models) {
+    copy(m->vertices, m->vertices + m->numVertices*8, modelData + counter);
+    counter += m->numVertices*8;
   }
 }
 
 
-// HELPER FUNCITONS FOR INSTANCES
+// HELPER FUNCTIONS FOR INSTANCES
 // helper function for creating an instance
-void fillInstance(Instance* i, Model* m, int t,
-                    float x, float y, float z, float s) {
+Instance* makeInstance(Model* m, int t, float x, float y, float z, float s) {
+  Instance* i = new Instance;
   i->model = m;
   i->textureIndex = t;
   i->objx = x; i->objy = y; i->objz = z; i->scale = s;
   i->rotate = false;
   i->colR = .2; i->colG = .3; i->colB = .1;
+  return i;
 }

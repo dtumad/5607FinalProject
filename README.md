@@ -2,9 +2,9 @@
 
 TODO:
 
-No way to input a function, they currently have to be hardcoded
+World shouldn't move when clicking inside the GUI
 
-Lighting is not especially nice, especially with flat U and V values
+Lighting is technichally one-sided, creates wierd shadow + specular interaction
 
 Some implementation of GL_Lines primitive, for axis, tick marks, potentially grides, lines along functions
   Could look at animating some things with these
@@ -17,15 +17,5 @@ Animation of balls on surfaces? (simple implementation just send them in the dir
 
 Fractals / recursive functions (Time to build model? Might not be able to be dynamic)
 
-Some kind of GUI
-
 Rotation doesn't work properly (especially left right when
   not looking from even with the horizon)
-
-
-
-OPTIMIZATIONS:
-Less pointers in model creation
-MultiThread model creation? PragmaOMP?
-Textures and UV coords can probably be removed, save a lot of space?
-Occasiaonally trim down degree of polynomials to save on iterations

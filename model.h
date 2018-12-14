@@ -2,6 +2,9 @@
 #define MODEL
 
 #include "function.h"
+#include <vector>
+
+using namespace std;
 
 struct Model_t {
   float* vertices;
@@ -31,10 +34,8 @@ void cross(float* ret, float a1, float a2, float a3,
 
 // takes models and puts all vertices into a common Array
 // allows the common array to be passed into OpenGL
-void makeVertexArray(float* modelData, Model** models,
+void makeVertexArray(float* modelData, vector<Model*> models,
         int numModels, int totalNumVerts);
-
-
 
 
 // represents one instance of an object in the world
@@ -51,6 +52,6 @@ typedef struct Instance_t Instance;
 
 // HELPER FUNCITONS FOR INSTANCES
 // helper function for creating an instance
-void fillInstance(Instance* i, Model* m, int t, float x, float y, float z, float s);
+Instance* makeInstance(Model* m, int t, float x, float y, float z, float s);
 
 #endif
