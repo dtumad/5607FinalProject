@@ -18,14 +18,16 @@ void main() {
   vec3 color;
   if (texID == -1)
     color = Color;
-  else if (texID == 0)
+  else if (texID == 0) {
     color = texture(tex0, texcoord).rgb;
+  }
   else if (texID == 1)
     color = texture(tex1, texcoord).rgb;
   else{
     outColor = vec4(1,0,0,1);
     return; //This was an error, stop lighting!
   }
+
   vec3 normal = normalize(vertNormal);
   vec3 diffuseC = color*max(dot(-lightDir,normal),0.0);
   vec3 ambC = color*ambient;
