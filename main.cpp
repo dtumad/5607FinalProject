@@ -2,8 +2,23 @@ const char* INSTRUCTIONS =
 "***************\n"
 "Graphing Calculator\n"
 "Click and drag to rotate\n"
+"Function inputs must correspond to the following grammar (whitespace is ignored):\n"
+"  E => T | FW\n"
+"  W => '(' T ')' | W '(' T ')'\n"
+"  T => F | F '+' T | F '-' T\n"
+"  F => NXY | FW\n"
+"  X => 'x^' I | 'x' | ''\n"
+"  Y => 'y^' I | 'y' | ''\n"
+"  N => float\n"
+"  I => int\n"
+"Examples of things that work:\n"
+"  2 + .2(x+1)(y-1) - .25x\n"
+"  (x^3)(y+y+y+y+5)(.03)\n"
+"  .000005(x^2 + 3xy^10)(x + x + y)\n"
+"  (x^3(y^2)(x^3(y^2)))(.0001)\n"
 "***************\n"
 ;
+
 
 #include "glad/glad.h"  //Include order can matter here
 #if defined(__APPLE__) || defined(__linux__)
@@ -26,23 +41,13 @@ const char* INSTRUCTIONS =
 #include <string>
 #include <vector>
 #include "model.h"
+#include "function.h"
 
 #include "imgui-master/imgui.h"
 #include "imgui-master/examples/imgui_impl_sdl.h"
 #include "imgui-master/examples/imgui_impl_opengl3.h"
+#include "imgui-master/examples/libs/gl3w/GL/gl3w.h"
 
-#if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
-#include <GL/gl3w.h>    // Initialize with gl3wInit()
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
-#include <GL/glew.h>    // Initialize with glewInit()
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
-#include <glad/glad.h>  // Initialize with gladLoadGL()
-#else
-#include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
-#endif
-
-
-// #include "function.h"
 using namespace std;
 
 int screenWidth = 1200;
@@ -66,77 +71,50 @@ void Win2PPM(int width, int height);
 void drawGeometry(int shaderProgram, vector<Instance*> instances);
 void recreateModelData
 
-
-
 int main(int argc, char* argv[]) {
-  if (argc < 1) {
-    printf("Usage: ./display\n");
-    return 0;
-  }
   srand(time(0));
 
-printf("test3\n");
   // INITALIZE SDL AND OPENGL
   SDL_Init(SDL_INIT_VIDEO);  //Initialize Graphics (for OpenGL)
-
-
 	//Ask SDL to get a recent version of OpenGL (3.2 or greater)
   const char* glsl_version = "#version 130";
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_DisplayMode current;
-    SDL_GetCurrentDisplayMode(0, &current);
-	//Create a window (offsetx, offsety, width, height, flags)
-	SDL_Window* window = SDL_CreateWindow("Graphing Calculator", 100, 100, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
-
-  //Hide mouse from view
-  // SDL_ShowCursor(SDL_DISABLE);
-  // SDL_SetRelativeMouseMode(SDL_TRUE);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+  SDL_DisplayMode current;
+  SDL_GetCurrentDisplayMode(0, &current);
+	SDL_Window* window = SDL_CreateWindow("Graphing Calculator", 0, 0, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
 	//Create a context to draw in
 	SDL_GLContext context = SDL_GL_CreateContext(window);
-
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-     SDL_GetCurrentDisplayMode(0, &current);
-     //SDL_Window* gl_window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
-     //SDL_GLContext gl_context = SDL_GL_CreateContext(gl_window);
-
-     SDL_GL_SetSwapInterval(1); // Enable vsync
-
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+  SDL_GetCurrentDisplayMode(0, &current);
+  //SDL_Window* gl_window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+  //SDL_GLContext gl_context = SDL_GL_CreateContext(gl_window);
+  SDL_GL_SetSwapInterval(1); // Enable vsync
 
 
-     #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
-         bool err = gl3wInit() != 0;
-     #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
-         bool err = glewInit() != GLEW_OK;
-     #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
-         bool err = gladLoadGL() == 0;
-     #else
-         bool err = false; // If you use IMGUI_IMPL_OPENGL_LOADER_CUSTOM, your loader is likely to requires some form of initialization.
-     #endif
-         if (err)
-         {
-             fprintf(stderr, "Failed to initialize OpenGL loader!\n");
-             return 1;
-         }
 
-     IMGUI_CHECKVERSION();
-     ImGui::CreateContext();
-     ImGuiIO& io = ImGui::GetIO(); (void)io;
+  /* IMGUI UI SETUP */
+  bool err = gl3wInit() != 0;
+  if (err) {
+    fprintf(stderr, "Failed to initialize OpenGL loader!\n");
+    return 1;
+  }
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  // Setup Platform/Renderer bindings
+  ImGui_ImplSDL2_InitForOpenGL(window, context);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+  // Setup Style
+  ImGui::StyleColorsDark();
 
-     // Setup Platform/Renderer bindings
-     ImGui_ImplSDL2_InitForOpenGL(window, context);
-     ImGui_ImplOpenGL3_Init(glsl_version);
-
-     // Setup Style
-     ImGui::StyleColorsDark();
 
 
 	//Load OpenGL extentions with GLAD
@@ -150,25 +128,23 @@ printf("test3\n");
 		printf("ERROR: Failed to initialize OpenGL context.\n");
 		return -1;
 	}
-  //TODO: This should be much more generalized
-  int bounds[4] = {0,10,0,10};
+
+
+
+  // create the function to be graphed;
   vector<Function> functions;
-  Function fun;
-  fun.parseFunctionFromString((char*) "");
-  fun.min_x = bounds[0];
-  fun.max_x = bounds[1];
-  fun.min_y = bounds[2];
-  fun.max_y = bounds[3];
-  fun.sample_rate = .05;
-  functions.push_back(fun);
+  int bounds[4] = {-3,3,-3,3};
+  Function* fun = new Function("2 + .2(x+1)(y-1) - .25x", bounds, .05);
+  printf("fun: %s\n", fun->toString().c_str());
+  functions.push_back(*fun);
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
   const int numModels = 2;
   vector<Model*> models;
-  Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
-  models.push_back(modelGraph);
+  Model* modelGraph = loadModelFromFunction(*fun, &totalNumVerts);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
+  models.push_back(modelGraph);
   models.push_back(modelPot);
   float* modelData = new float[(totalNumVerts)*8];
   makeVertexArray(modelData, models, numModels, totalNumVerts);
@@ -176,62 +152,37 @@ printf("test3\n");
   // Load instances based on each of the models for walls and doors
   int loadedInstances = 0;
   vector<Instance*> instances;
-  instances.push_back(makeInstance(modelGraph, -1, 0, 0, 0, 1));
-  instances.push_back(makeInstance(modelPot, -1, fun.min_x, fun.min_y, 0, 1));
-  instances.push_back(makeInstance(modelPot, -1, fun.max_x, fun.min_y, 0, 1));
-  instances.push_back(makeInstance(modelPot, -1, fun.min_x, fun.max_y, 0, 1));
-  instances.push_back(makeInstance(modelPot, -1, fun.max_x, fun.max_y, 0, 1));
+  instances.push_back(makeInstance(modelGraph, 0, 0, 0, 0, 1));
+  // instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->min_y, 0, 1));
+  // instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->min_y, 0, 1));
+  // instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->max_y, 0, 1));
+  // instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->max_y, 0, 1));
+
+
 
   //// Allocate Texture 0 (Wood) ///////
-  SDL_Surface* surface = SDL_LoadBMP("wood.bmp");
+  SDL_Surface* surface = SDL_LoadBMP("grid.bmp");
   if (surface==NULL){ //If it failed, print the error
       printf("Error: \"%s\"\n",SDL_GetError()); return 1;
   }
   GLuint tex0;
   glGenTextures(1, &tex0);
-
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex0);
-
   //What to do outside 0-1 range
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
   //Load the texture into memory
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w,surface->h, 0, GL_BGR,GL_UNSIGNED_BYTE,surface->pixels);
   glGenerateMipmap(GL_TEXTURE_2D); //Mip maps the texture
-
   SDL_FreeSurface(surface);
   //// End Allocate Texture ///////
 
-
-  //// Allocate Texture 1 (Brick) ///////
-  SDL_Surface* surface1 = SDL_LoadBMP("brick.bmp");
-  if (surface==NULL){ //If it failed, print the error
-      printf("Error: \"%s\"\n",SDL_GetError()); return 1;
-  }
-  GLuint tex1;
-  glGenTextures(1, &tex1);
-
-  //Load the texture into memory
-   glActiveTexture(GL_TEXTURE1);
-
-  glBindTexture(GL_TEXTURE_2D, tex1);
-  //What to do outside 0-1 range
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface1->w,surface1->h, 0, GL_BGR,GL_UNSIGNED_BYTE,surface1->pixels);
-  glGenerateMipmap(GL_TEXTURE_2D); //Mip maps the texture
-
-  SDL_FreeSurface(surface1);
-  //// End Allocate Texture ///////
-
+  /* OPENGL SETUP AND VERTEX STORAGE */
   //Build a Vertex Array Object (VAO) to store mapping of shader attributse to VBO
   GLuint vao;
   glGenVertexArrays(1, &vao); //Create a VAO
   glBindVertexArray(vao); //Bind the above created VAO to the current context
-
   //Allocate memory on the graphics card to store geometry (vertex buffer object)
   GLuint vbo[1];
   glGenBuffers(1, vbo);  //Create 1 buffer called vbo
@@ -245,37 +196,43 @@ printf("test3\n");
   //Tell OpenGL how to set fragment shader input
   GLint posAttrib = glGetAttribLocation(texturedShader, "position");
   glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
-    //Attribute, vals/attrib., type, isNormalized, stride, offset
   glEnableVertexAttribArray(posAttrib);
-
   GLint normAttrib = glGetAttribLocation(texturedShader, "inNormal");
   glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(5*sizeof(float)));
   glEnableVertexAttribArray(normAttrib);
-
   GLint texAttrib = glGetAttribLocation(texturedShader, "inTexcoord");
   glEnableVertexAttribArray(texAttrib);
   glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof(float)));
 
   GLint uniView = glGetUniformLocation(texturedShader, "view");
   GLint uniProj = glGetUniformLocation(texturedShader, "proj");
-
   glBindVertexArray(0); //Unbind the VAO in case we want to create a new one
-
   glEnable(GL_DEPTH_TEST);
 
-  printf("%s\n",INSTRUCTIONS);
 
+<<<<<<< HEAD
   //Event Loop (Loop forever processing each event as fast as possible)
   bool show_demo_window = true;
   bool show_another_window = false;
   ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
   char buf [250] = "test function";
+=======
 
+  printf("%s\n",INSTRUCTIONS);
+  /* VARIABLES CONTROLLING THE STATE DURING THE LOOP */
+  bool boogeyman = false;
+>>>>>>> 270a084b8b0c92367ada3ad11c60b7bce5bca1e4
+
+  ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f); // current input color
+  char buf [250] = "2 + .2(x+1)(y-1) - .25x"; // current input text
+  char currentEq [250] = "2 + .2(x+1)(y-1) - .25x"; // currently graphed function
+  bool parseOkay = true; // last input was valid
+  int GuiLocation[4] = {0,0,0,0};
 
   SDL_Event windowEvent;
-  bool quit = false;
-  bool dragging = false;
-  while (!quit){
+  bool quit = false; // stop loop
+  bool dragging = false; // mouse button is down
+  while (!quit){ //Event Loop (Loop forever processing each event as fast as possible)
     while (SDL_PollEvent(&windowEvent)){  //inspect all events in the queue
       ImGui_ImplSDL2_ProcessEvent(&windowEvent);
 
@@ -291,12 +248,15 @@ printf("test3\n");
       // Handle mouse movement for rotation
       else if (windowEvent.type == SDL_MOUSEMOTION && dragging) {
         // adjust angles, clamp z rotation, and cache trig functions
-        look -= (float) windowEvent.motion.xrel / 250.0f * (cosgaze > 0 ? 1 : -1);
-        gaze += (float) windowEvent.motion.yrel / 150.0f;
-        sinlook = sin(look); singaze = sin(gaze);
-        coslook = cos(look); cosgaze = cos(gaze);
-
-        int x = windowEvent.motion.x; int y = windowEvent.motion.y;
+        SDL_MouseMotionEvent m = windowEvent.motion;
+        bool xOutGui = m.x+m.xrel < GuiLocation[0] || m.x+m.xrel > GuiLocation[2];
+        bool yOutGui = m.y+m.yrel < GuiLocation[1] || m.y+m.yrel > GuiLocation[3];
+        if (xOutGui || yOutGui) {
+          look -= (float) m.xrel / 250.0f * (cosgaze > 0 ? 1 : -1);
+          gaze += (float) m.yrel / 150.0f;
+          sinlook = sin(look); singaze = sin(gaze);
+          coslook = cos(look); cosgaze = cos(gaze);
+        }
       }
       else if (windowEvent.type == SDL_MOUSEBUTTONDOWN
         && windowEvent.button.button == SDL_BUTTON_LEFT) {
@@ -313,6 +273,7 @@ printf("test3\n");
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
 
+<<<<<<< HEAD
       else if (false) { // TODO: get the appropriate condition from the gui
         string fun_str = "TODO" // TODO: get the new function string from the gui
         Function fun = parseFunctionFromString(fun_str)
@@ -320,6 +281,16 @@ printf("test3\n");
         Model* newModel = loadModelFromFunction(fun, &dummy);
         copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+=======
+      else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
+        // Function* switchfun = fun;
+        // if (boogeyman) {switchfun = fun;}
+        // boogeyman = !boogeyman;
+        // int dummy = 0;
+        // Model* newModel = loadModelFromFunction(switchfun, &dummy);
+        // copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+        // glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+>>>>>>> 270a084b8b0c92367ada3ad11c60b7bce5bca1e4
       }
     }
 
@@ -327,9 +298,7 @@ printf("test3\n");
     // Clear the screen to default color
     glClearColor(.2f, 0.4f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     glUseProgram(texturedShader);
-
 
     timePast = SDL_GetTicks()/1000.f;
     glm::mat4 view = glm::lookAt(
@@ -343,68 +312,89 @@ printf("test3\n");
     glm::mat4 proj = glm::perspective(3.14f/3, screenWidth / (float) screenHeight, 0.1f, 100.0f); //FOV, aspect, near, far
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
     glUniform1i(glGetUniformLocation(texturedShader, "tex0"), 0);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, tex1);
-    glUniform1i(glGetUniformLocation(texturedShader, "tex1"), 1);
-
     glBindVertexArray(vao);
     drawGeometry(texturedShader, instances);
 
+
+    /* IMGUI PORTION OF THE GAMELOOP */
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
-
-           // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
     {
-        static float f = 0.0f;
-        static int counter = 0;
+      static float f = 0.0f;
+      static int counter = 0;
 
-        ImGui::Begin("");                          // Create a window called "Hello, world!" and append into it.
+      ImGui::Begin("");
 
-        ImGui::ColorEdit3("Graph Color", (float*)&color); // Edit 3 floats representing a color
-        ImGui::Text("Funtion: ");
-        ImGui::SameLine();
-        ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
-        if (ImGui::Button("Graph Function")){
-            //Call function with text;
-            // and color?
-            printf("%s\n", buf);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset")) {
-           printf("Reset\n");
-        }
-        ImGui::End();
+      GuiLocation[0] = ImGui::GetWindowPos().x;
+      GuiLocation[1] = ImGui::GetWindowPos().y;
+      GuiLocation[2] = GuiLocation[0] + ImGui::GetWindowSize().x;
+      GuiLocation[3] = GuiLocation[1] + ImGui::GetWindowSize().y;
+
+      ImGui::ColorEdit3("Graph Color", (float*)&color); // Edit 3 floats representing a color
+      ImGui::Text("Funtion: ");
+      ImGui::SameLine();
+      ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
+      bool parseOkay = true;
+      if (ImGui::Button("Graph Function")){
+          //Call function with text;
+          // and color?
+          printf("%s\n", buf);
+          parseOkay = fun->parseFunctionFromString(buf);
+          strcpy(currentEq, fun->toString().c_str());
+          int dummy = 0;
+          Model* newModel = loadModelFromFunction(*fun, &dummy);
+          models[0] = newModel;
+          copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+          glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Reset")) {
+        fun->parseFunctionFromString("");
+        int dummy = 0;
+        Model* newModel = loadModelFromFunction(*fun, &dummy);
+        models[0] = newModel;
+        copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+      }
+      if (parseOkay) {
+        ImGui::Text("Currently Displaying: %s", currentEq);
+      }
+      else {
+        ImGui::Text("Error parsing the input");
+      }
+      ImGui::End();
     }
 
+
+
+    /* PERFORM THE ACTUAL RENDERING */
     ImGui::Render();
     SDL_GL_MakeCurrent(window, context);
     glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window); //Double buffering
-
   }
 
+  // Clean Up
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
-
-
-  //Clean Up
-  //glDeleteProgram(texturedShader);
-  //glDeleteBuffers(1, vbo);
-  //lDeleteVertexArrays(1, &vao);
-
+  glDeleteProgram(texturedShader);
+  glDeleteBuffers(1, vbo);
+  glDeleteVertexArrays(1, &vao);
   SDL_GL_DeleteContext(context);
   SDL_DestroyWindow(window);
   SDL_Quit();
   return 0;
 }
+
+
+
 
 // draw all the instaces in passed in array using the given shaderProgram
 void drawGeometry(int shaderProgram, vector<Instance*> instances){
@@ -570,45 +560,3 @@ GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName){
 
   return program;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
