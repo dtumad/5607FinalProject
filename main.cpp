@@ -129,6 +129,8 @@ int main(int argc, char* argv[]) {
 
   // create the function to be graphed;
   int bounds[4] = {-3,3,-3,3};
+  vector<Function> functions;
+  functions.push_back(Function("2 + .2(x+1)(y-1) - .25x", bounds, .05));
   Function fun = Function("2 + .2(x+1)(y-1) - .25x", bounds, .05);
   printf("fun: %s\n", fun.toString().c_str());
 
@@ -209,7 +211,6 @@ int main(int argc, char* argv[]) {
 
   ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f); // current input color
   char buf [250] = "2 + .2(x+1)(y-1) - .25x"; // current input text
-  char currentEq [250] = "0.2xy + -0.45x + 0.2y + 1.8"; // currently graphed function
   bool parseOkay = true; // last input was valid
   int GuiLocation[4] = {0,0,0,0};
   SDL_Event windowEvent;
@@ -299,7 +300,7 @@ int main(int argc, char* argv[]) {
       float color[3] = {0,0,255};
       ImGui::ColorEdit3("Graph Color", color); // Edit 3 floats representing a color
       initGridTexture(&tex0, color[0], color[1], color[2]);
-      ImGui::Text("Funtion: ");
+      ImGui::Text("Function: ");
       ImGui::SameLine();
       ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
       bool parseOkay = true;
@@ -307,15 +308,18 @@ int main(int argc, char* argv[]) {
           //Call function with text;
           // and color?
           printf("%s\n", buf);
-          parseOkay = fun.parseFunctionFromString(buf);
-          if (parseOkay) {
-            strcpy(currentEq, fun.toString().c_str());
-            Model* newModel = loadModelFromFunction(fun, &totalNumVerts);
+          Function newFun = Function("", bounds, 0.05);
+          if (newFun.parseFunctionFromString(buf)) {
+            functions.push_back(newFun);
+            Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
             models.push_back(newModel);
             instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
             free(modelData);
             modelData = makeVertexArray(models, totalNumVerts);
             glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+          }
+          else {
+            ImGui::Text("Error parsing the input");
           }
       }
       ImGui::SameLine();
@@ -331,16 +335,15 @@ int main(int argc, char* argv[]) {
           free(instances.back());
           instances.pop_back();
         }
+        functions.clear();
         totalNumVerts = models[0]->numVertices;
         free(modelData);
         modelData = makeVertexArray(models, totalNumVerts);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
-      if (parseOkay) {
-        ImGui::Text("Currently Displaying: %s", currentEq);
-      }
-      else {
-        ImGui::Text("Error parsing the input");
+      ImGui::Text("Currently Displaying:");
+      for (int i=0; i<functions.size(); i++) {
+        ImGui::Text("  %d: %s", i+1, functions[i].toString().c_str());
       }
       ImGui::End();
     }

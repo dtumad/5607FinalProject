@@ -17,12 +17,10 @@ public:
 
   Function() {
     this->degree = -1;
-    this->setFunctionDegree(-1);
   }
 
   Function(string eq, int bounds[4], float sample_rate) {
     this->degree = -1;
-    this->setFunctionDegree(-1);
     this->parseFunctionFromString(eq);
     this->sample_rate = sample_rate;
     this->min_x = bounds[0];
@@ -36,6 +34,8 @@ public:
   void resetFunction();
 
   string toString();
+
+  bool parseFunctionFromString(string input);
 
   /*
     Inputs must correspond to the following grammar (whitespace is ignored):
@@ -53,7 +53,6 @@ public:
       .000005(x^2 + 3xy^10)(x + x + y)
       (x^3(y^2)(x^3(y^2)))(.0001)
   */
-  bool parseFunctionFromString(string input);
 
   // combine two functions into this function.
   // destroys the function currently here, but not f or g
@@ -65,7 +64,6 @@ public:
 
   float eval(float x, float y);
 };
-
 
 // Variety of helper functions used to parse in new function objects
 int parseI(string i);
