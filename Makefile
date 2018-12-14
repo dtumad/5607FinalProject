@@ -1,2 +1,2 @@
 all: main.cpp model.cpp function.cpp
-	g++ main.cpp model.cpp function.cpp -g glad/glad.c -lSDL2 -lSDL2main -lGL -ldl -I/usr/include/SDL2 -o display.out
+	g++ `sdl2-config --cflags` -I imgui-master -I imgui-master/examples -I imgui-master/examples/libs/gl3w main.cpp model.cpp function.cpp imgui-master/examples/imgui_impl_sdl.cpp imgui-master/examples/imgui_impl_opengl3.cpp imgui-master/imgui*.cpp imgui-master/examples/libs/gl3w/GL/gl3w.c `sdl2-config --libs` -g glad/glad.c -lGL -ldl -lSDL2 -lSDL2main -lGL -ldl -I/usr/include/SDL2 -o display.out
