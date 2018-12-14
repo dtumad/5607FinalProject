@@ -11,7 +11,7 @@ bool Function::parseFunctionFromString(string input){
   input.erase(remove_if(input.begin(), input.end(), ::isspace), input.end());
   // parse in the string
   try {
-    this->setFunctionDegree(-1);
+    this->resetFunction();
     parseE(input, this);
     return true;
   }
@@ -30,6 +30,17 @@ void Function::setFunctionDegree(int degree) {
     for (int i = 0; i < degree + 1; i++) {
       this->coefficients[i].resize(degree + 1, 0);
     }
+  }
+}
+
+void Function::resetFunction() {
+  int degree = -1;
+  this->degree = degree;
+  this->xPowCache.resize(degree + 1, 0);
+  this->yPowCache.resize(degree + 1, 0);
+  this->coefficients.resize(degree + 1);
+  for (int i = 0; i < degree + 1; i++) {
+    this->coefficients[i].resize(degree + 1, 0);
   }
 }
 
@@ -54,6 +65,9 @@ string Function::toString() {
   }
   p = p.substr(0, p.length()-3);
   p += "\n";
+  if (p.length() <= 1) {
+    p = "0.";
+  }
   return p;
 }
 

@@ -6,8 +6,6 @@ TODO:
 Rotation doesn't work properly (especially left right when
   not looking from even with the horizon), THIS IS KINDA TOUGH TO DO CORRECTLY, MAYBE DON'T BOTHER
 
-Moving the GUI too fast also rotates the world
-
 Lighting is technichally one-sided, creates wierd shadow + specular interaction
 
 Some implementation of GL_Lines primitive, for axis, tick marks, potentially grides, lines along functions

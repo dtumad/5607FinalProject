@@ -50,25 +50,27 @@ const char* INSTRUCTIONS =
 
 using namespace std;
 
+bool DEBUG_ON = false;
 int screenWidth = 1200;
 int screenHeight = 1000;
 float timePast = 0;
-
+bool fullscreen = false;
 // camera coordinates and looking angle
 float cam_dist = 10;
 // coslook and other variables are just used to cache values
-float look = -2; float coslook = cos(look); float sinlook = sin(look);
-float gaze = -.8; float cosgaze = cos(gaze); float singaze = sin(gaze);
+float look = 0; float coslook = cos(look); float sinlook = sin(look);
+float gaze = 0.2; float cosgaze = cos(gaze); float singaze = sin(gaze);
 float colR = 1, colG = 0, colB = 0;
 
-float jumpv = 0, jumpt = 0;
 
-bool DEBUG_ON = false;
+
+// helper functions called by main
+bool initGridTexture(GLuint* tex, char r, char g, char b);
 GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
-bool fullscreen = false;
 void Win2PPM(int width, int height);
-
 void drawGeometry(int shaderProgram, vector<Instance*> instances);
+
+
 
 int main(int argc, char* argv[]) {
   srand(time(0));
@@ -76,7 +78,6 @@ int main(int argc, char* argv[]) {
   // INITALIZE SDL AND OPENGL
   SDL_Init(SDL_INIT_VIDEO);  //Initialize Graphics (for OpenGL)
 	//Ask SDL to get a recent version of OpenGL (3.2 or greater)
-  const char* glsl_version = "#version 130";
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
@@ -97,8 +98,6 @@ int main(int argc, char* argv[]) {
   //SDL_GLContext gl_context = SDL_GL_CreateContext(gl_window);
   SDL_GL_SetSwapInterval(1); // Enable vsync
 
-
-
   /* IMGUI UI SETUP */
   bool err = gl3wInit() != 0;
   if (err) {
@@ -110,11 +109,9 @@ int main(int argc, char* argv[]) {
   ImGuiIO& io = ImGui::GetIO(); (void)io;
   // Setup Platform/Renderer bindings
   ImGui_ImplSDL2_InitForOpenGL(window, context);
-  ImGui_ImplOpenGL3_Init(glsl_version);
+  ImGui_ImplOpenGL3_Init("#version 130");
   // Setup Style
   ImGui::StyleColorsDark();
-
-
 
 	//Load OpenGL extentions with GLAD
 	if (gladLoadGLLoader(SDL_GL_GetProcAddress)){
@@ -152,30 +149,16 @@ int main(int argc, char* argv[]) {
   int loadedInstances = 0;
   vector<Instance*> instances;
   instances.push_back(makeInstance(modelGraph, 0, 0, 0, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->min_y, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->min_y, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->max_y, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->max_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->min_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->min_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->max_y, 0, 1));
+  instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->max_y, 0, 1));
 
-
-
-  //// Allocate Texture 0 (Wood) ///////
-  SDL_Surface* surface = SDL_LoadBMP("grid.bmp");
-  if (surface==NULL){ //If it failed, print the error
-      printf("Error: \"%s\"\n",SDL_GetError()); return 1;
-  }
+  // initilize texture for the graph object
   GLuint tex0;
-  glGenTextures(1, &tex0);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex0);
-  //What to do outside 0-1 range
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  //Load the texture into memory
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w,surface->h, 0, GL_BGR,GL_UNSIGNED_BYTE,surface->pixels);
-  glGenerateMipmap(GL_TEXTURE_2D); //Mip maps the texture
-  SDL_FreeSurface(surface);
-  //// End Allocate Texture ///////
+  initGridTexture(&tex0, 0, 0, 255);
+
+
 
   /* OPENGL SETUP AND VERTEX STORAGE */
   //Build a Vertex Array Object (VAO) to store mapping of shader attributse to VBO
@@ -214,9 +197,9 @@ int main(int argc, char* argv[]) {
   /* VARIABLES CONTROLLING THE STATE DURING THE LOOP */
   bool boogeyman = false;
 
-  ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f); // current input color
+  float color[3] = {0, 0, 255}; // current input color
   char buf [250] = "2 + .2(x+1)(y-1) - .25x"; // current input text
-  char currentEq [250] = "2 + .2(x+1)(y-1) - .25x"; // currently graphed function
+  char currentEq [250] = "0.2xy + -0.45x + 0.2y + 1.8"; // currently graphed function
   bool parseOkay = true; // last input was valid
   int GuiLocation[4] = {0,0,0,0};
 
@@ -240,18 +223,17 @@ int main(int argc, char* argv[]) {
       else if (windowEvent.type == SDL_MOUSEMOTION && dragging) {
         // adjust angles, clamp z rotation, and cache trig functions
         SDL_MouseMotionEvent m = windowEvent.motion;
-        bool xOutGui = m.x+m.xrel < GuiLocation[0] || m.x+m.xrel > GuiLocation[2];
-        bool yOutGui = m.y+m.yrel < GuiLocation[1] || m.y+m.yrel > GuiLocation[3];
-        if (xOutGui || yOutGui) {
-          look -= (float) m.xrel / 250.0f * (cosgaze > 0 ? 1 : -1);
-          gaze += (float) m.yrel / 150.0f;
-          sinlook = sin(look); singaze = sin(gaze);
-          coslook = cos(look); cosgaze = cos(gaze);
-        }
+        look -= (float) m.xrel / 250.0f * (cosgaze > 0 ? 1 : -1);
+        gaze += (float) m.yrel / 150.0f;
+        sinlook = sin(look); singaze = sin(gaze);
+        coslook = cos(look); cosgaze = cos(gaze);
       }
       else if (windowEvent.type == SDL_MOUSEBUTTONDOWN
         && windowEvent.button.button == SDL_BUTTON_LEFT) {
-          dragging = true;
+          SDL_MouseButtonEvent m = windowEvent.button;
+          bool xOutGui = m.x < GuiLocation[0] || m.x > GuiLocation[2];
+          bool yOutGui = m.y < GuiLocation[1] || m.y > GuiLocation[3];
+          dragging = xOutGui || yOutGui;
       }
       else if (windowEvent.type == SDL_MOUSEBUTTONUP
         && windowEvent.button.button == SDL_BUTTON_LEFT) {
@@ -316,7 +298,8 @@ int main(int argc, char* argv[]) {
       GuiLocation[2] = GuiLocation[0] + ImGui::GetWindowSize().x;
       GuiLocation[3] = GuiLocation[1] + ImGui::GetWindowSize().y;
 
-      ImGui::ColorEdit3("Graph Color", (float*)&color); // Edit 3 floats representing a color
+      ImGui::ColorEdit3("Graph Color", color); // Edit 3 floats representing a color
+      initGridTexture(&tex0, color[0], color[1], color[2]);
       ImGui::Text("Funtion: ");
       ImGui::SameLine();
       ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
@@ -324,7 +307,6 @@ int main(int argc, char* argv[]) {
       if (ImGui::Button("Graph Function")){
           //Call function with text;
           // and color?
-          printf("%s\n", buf);
           parseOkay = fun->parseFunctionFromString(buf);
           strcpy(currentEq, fun->toString().c_str());
           int dummy = 0;
@@ -335,7 +317,9 @@ int main(int argc, char* argv[]) {
       }
       ImGui::SameLine();
       if (ImGui::Button("Reset")) {
-        fun->parseFunctionFromString("");
+        parseOkay = fun->parseFunctionFromString("");
+        strcpy(currentEq, fun->toString().c_str());
+        strcpy(buf, fun->toString().c_str());
         int dummy = 0;
         Model* newModel = loadModelFromFunction(*fun, &dummy);
         models[0] = newModel;
@@ -409,6 +393,41 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances){
     glDrawArrays(GL_TRIANGLES, inst->model->startVertex, inst->model->numVertices); //(Primitive Type, Start Vertex, Num Verticies)
 
   }
+}
+
+bool initGridTexture(GLuint* tex, char r, char g, char b) {
+  printf("%d %d %d\n", r, g, b);
+  int w = 50; int h = 50;
+  SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_BGR24);
+  SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_BGR24);
+  for (int x = 0; x < w; x++) {
+    for (int y = 0; y < h; y++) {
+      Uint8* p = ((Uint8*) surface->pixels);
+      if (x == 0 || y == 0 || x == w-1 || y == h-1) {
+        p[y*surface->pitch + x*3] = 0;
+        p[y*surface->pitch + x*3 + 1] = 0;
+        p[y*surface->pitch + x*3 + 2] = 0;
+      }
+      else {
+        p[y*surface->pitch + x*3] = b;
+        p[y*surface->pitch + x*3 + 1] = g;
+        p[y*surface->pitch + x*3 + 2] = r;
+      }
+
+    }
+  }
+
+  glGenTextures(1, tex);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, *tex);
+  //What to do outside 0-1 range
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  //Load the texture into memory
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w,surface->h, 0, GL_BGR,GL_UNSIGNED_BYTE, surface->pixels);
+  glGenerateMipmap(GL_TEXTURE_2D); //Mip maps the texture
+  SDL_FreeSurface(surface);
+  return true;
 }
 
 

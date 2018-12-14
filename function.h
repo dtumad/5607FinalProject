@@ -33,6 +33,8 @@ public:
 
   void setFunctionDegree(int degree);
 
+  void resetFunction();
+
   string toString();
 
   /*
