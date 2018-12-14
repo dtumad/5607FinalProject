@@ -69,6 +69,7 @@ bool initGridTexture(GLuint* tex, char r, char g, char b);
 GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 void Win2PPM(int width, int height);
 void drawGeometry(int shaderProgram, vector<Instance*> instances);
+void recreateModelData
 
 
 
@@ -192,10 +193,18 @@ int main(int argc, char* argv[]) {
   glEnable(GL_DEPTH_TEST);
 
 
+<<<<<<< HEAD
+  //Event Loop (Loop forever processing each event as fast as possible)
+  bool show_demo_window = true;
+  bool show_another_window = false;
+  ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+  char buf [250] = "test function";
+=======
 
   printf("%s\n",INSTRUCTIONS);
   /* VARIABLES CONTROLLING THE STATE DURING THE LOOP */
   bool boogeyman = false;
+>>>>>>> 270a084b8b0c92367ada3ad11c60b7bce5bca1e4
 
   float color[3] = {0, 0, 255}; // current input color
   char buf [250] = "2 + .2(x+1)(y-1) - .25x"; // current input text
@@ -246,6 +255,15 @@ int main(int argc, char* argv[]) {
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
 
+<<<<<<< HEAD
+      else if (false) { // TODO: get the appropriate condition from the gui
+        string fun_str = "TODO" // TODO: get the new function string from the gui
+        Function fun = parseFunctionFromString(fun_str)
+        int dummy = 0;
+        Model* newModel = loadModelFromFunction(fun, &dummy);
+        copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+=======
       else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
         // Function* switchfun = fun;
         // if (boogeyman) {switchfun = fun;}
@@ -254,6 +272,7 @@ int main(int argc, char* argv[]) {
         // Model* newModel = loadModelFromFunction(switchfun, &dummy);
         // copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
         // glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+>>>>>>> 270a084b8b0c92367ada3ad11c60b7bce5bca1e4
       }
     }
 
