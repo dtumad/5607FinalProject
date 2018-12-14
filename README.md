@@ -18,3 +18,14 @@ Animation of balls on surfaces? (simple implementation just send them in the dir
 Fractals / recursive functions (Time to build model? Might not be able to be dynamic)
 
 Some kind of GUI
+
+Rotation doesn't work properly (especially left right when
+  not looking from even with the horizon)
+
+
+
+OPTIMIZATIONS:
+Less pointers in model creation
+MultiThread model creation? PragmaOMP?
+Textures and UV coords can probably be removed, save a lot of space?
+Occasiaonally trim down degree of polynomials to save on iterations

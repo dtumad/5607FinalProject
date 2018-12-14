@@ -25,11 +25,12 @@ const char* INSTRUCTIONS =
 #include <fstream>
 #include <string>
 #include "model.h"
+#include "function.h"
 // #include "function.h"
 using namespace std;
 
-int screenWidth = 1200;
-int screenHeight = 1000;
+int screenWidth = 800;
+int screenHeight = 600;
 float timePast = 0;
 
 // camera coordinates and looking angle
@@ -49,8 +50,8 @@ void Win2PPM(int width, int height);
 void drawGeometry(int shaderProgram, Instance* instances, int numInstances);
 
 int main(int argc, char* argv[]) {
-  if (argc < 1) {
-    printf("Usage: ./display\n");
+  if (argc < 2) {
+    printf("Usage: ./display x^2");
     return 0;
   }
   srand(time(0));
@@ -64,7 +65,7 @@ int main(int argc, char* argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
 	//Create a window (offsetx, offsety, width, height, flags)
-	SDL_Window* window = SDL_CreateWindow("Graphing Calculator", 100, 100, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
+	SDL_Window* window = SDL_CreateWindow("Graphing Calculator", 0, 0, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
   //Hide mouse from view
   // SDL_ShowCursor(SDL_DISABLE);
@@ -84,20 +85,18 @@ int main(int argc, char* argv[]) {
 		printf("ERROR: Failed to initialize OpenGL context.\n");
 		return -1;
 	}
-  //TODO: This should be much more generalized
-  int bounds[4] = {0,10,0,10};
-  Function fun;
-  fun.parseFunctionFromString((char*) "");
-  fun.min_x = bounds[0];
-  fun.max_x = bounds[1];
-  fun.min_y = bounds[2];
-  fun.max_y = bounds[3];
-  fun.sample_rate = .05;
+
+
+  // create the function to be graphed;
+  int bounds[4] = {-3,3,-3,3};
+  Function* fun = new Function(argv[1], bounds, .05);
+  printf("fun: %s\n", fun->toString().c_str());
+
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
   const int numModels = 2;
-  Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
+  Model* modelGraph = loadModelFromFunction(*fun, &totalNumVerts);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
   Model* models[numModels] = {modelGraph, modelPot};
   float* modelData = new float[(totalNumVerts)*8];
@@ -106,15 +105,15 @@ int main(int argc, char* argv[]) {
   // Load instances based on each of the models for walls and doors
   int loadedInstances = 0;
   Instance instances[5];
-  fillInstance(&instances[loadedInstances++], modelGraph, -1, 0, 0, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.min_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.min_x, fun.max_y, 0, 1);
-  fillInstance(&instances[loadedInstances++], modelPot, -1, fun.max_x, fun.max_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelGraph, 0, 0, 0, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun->min_x, fun->min_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun->max_x, fun->min_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun->min_x, fun->max_y, 0, 1);
+  fillInstance(&instances[loadedInstances++], modelPot, -1, fun->max_x, fun->max_y, 0, 1);
   for (int i = 0; i < 5; i++) instances[i].rotate = false;
 
   //// Allocate Texture 0 (Wood) ///////
-  SDL_Surface* surface = SDL_LoadBMP("wood.bmp");
+  SDL_Surface* surface = SDL_LoadBMP("grid.bmp");
   if (surface==NULL){ //If it failed, print the error
       printf("Error: \"%s\"\n",SDL_GetError()); return 1;
   }
@@ -135,28 +134,6 @@ int main(int argc, char* argv[]) {
   SDL_FreeSurface(surface);
   //// End Allocate Texture ///////
 
-
-  //// Allocate Texture 1 (Brick) ///////
-  SDL_Surface* surface1 = SDL_LoadBMP("brick.bmp");
-  if (surface==NULL){ //If it failed, print the error
-      printf("Error: \"%s\"\n",SDL_GetError()); return 1;
-  }
-  GLuint tex1;
-  glGenTextures(1, &tex1);
-
-  //Load the texture into memory
-  glActiveTexture(GL_TEXTURE1);
-
-  glBindTexture(GL_TEXTURE_2D, tex1);
-  //What to do outside 0-1 range
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface1->w,surface1->h, 0, GL_BGR,GL_UNSIGNED_BYTE,surface1->pixels);
-  glGenerateMipmap(GL_TEXTURE_2D); //Mip maps the texture
-
-  SDL_FreeSurface(surface1);
-  //// End Allocate Texture ///////
 
   //Build a Vertex Array Object (VAO) to store mapping of shader attributse to VBO
   GLuint vao;
@@ -261,10 +238,6 @@ int main(int argc, char* argv[]) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
     glUniform1i(glGetUniformLocation(texturedShader, "tex0"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, tex1);
-    glUniform1i(glGetUniformLocation(texturedShader, "tex1"), 1);
 
     glBindVertexArray(vao);
     drawGeometry(texturedShader, instances, loadedInstances);

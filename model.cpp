@@ -1,4 +1,5 @@
 #include "model.h"
+#include "function.h"
 #include <stdlib.h>
 #include <fstream>
 #include <math.h>
@@ -77,8 +78,8 @@ void helperMakeVertex(Model* model, Function fun,
   model->vertices[(*i)++] = y;
   model->vertices[(*i)++] = fun.eval(x,y);
   // U and V
-  model->vertices[(*i)++] = 0;
-  model->vertices[(*i)++] = 1;
+  model->vertices[(*i)++] = x*10;
+  model->vertices[(*i)++] = y*10;
   // normal
   model->vertices[(*i)++] = n1;
   model->vertices[(*i)++] = n2;
