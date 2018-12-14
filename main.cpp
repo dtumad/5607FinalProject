@@ -48,6 +48,7 @@ bool fullscreen = false;
 void Win2PPM(int width, int height);
 
 void drawGeometry(int shaderProgram, vector<Instance*> instances);
+void recreateModelData
 
 int main(int argc, char* argv[]) {
   if (argc < 1) {
@@ -200,7 +201,6 @@ int main(int argc, char* argv[]) {
 
   printf("%s\n",INSTRUCTIONS);
 
-  bool boogeyman = false;
   //Event Loop (Loop forever processing each event as fast as possible)
   SDL_Event windowEvent;
   bool quit = false;
@@ -241,12 +241,11 @@ int main(int argc, char* argv[]) {
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
 
-      else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
-        Function switchfun = fun;
-        if (boogeyman) {switchfun = fun;}
-        boogeyman = !boogeyman;
+      else if (false) { // TODO: get the appropriate condition from the gui
+        string fun_str = "TODO" // TODO: get the new function string from the gui
+        Function fun = parseFunctionFromString(fun_str)
         int dummy = 0;
-        Model* newModel = loadModelFromFunction(switchfun, &dummy);
+        Model* newModel = loadModelFromFunction(fun, &dummy);
         copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
