@@ -2,6 +2,7 @@
 #define MODEL
 
 #include "function.h"
+#include "glm/glm.hpp"
 #include <vector>
 
 using namespace std;
@@ -34,24 +35,39 @@ void cross(float* ret, float a1, float a2, float a3,
 
 // takes models and puts all vertices into a common Array
 // allows the common array to be passed into OpenGL
-void makeVertexArray(float* modelData, vector<Model*> models,
-        int numModels, int totalNumVerts);
-
+float* makeVertexArray(vector<Model*> models, int totalNumVerts);
 
 // represents one instance of an object in the world
 // TODO: I don't think scale works correctly
-struct Instance_t {
+struct Instance {
   Model* model;
   int textureIndex;
-  float objx, objy, objz;
-  float colR, colG, colB;
+  glm::vec3 translation;
+  glm::vec3 color;
   float scale;
-  bool rotate;
-};
-typedef struct Instance_t Instance;
+  glm::mat4 rotation;
 
-// HELPER FUNCITONS FOR INSTANCES
-// helper function for creating an instance
-Instance* makeInstance(Model* m, int t, float x, float y, float z, float s);
+  // used for making graph instances
+  Instance(Model* model, glm::vec3 color, int textureIndex) {
+    this->model = model;
+    this->color = color;
+    this->textureIndex = textureIndex;
+    //Defaults for graphs
+    this->translation = glm::vec3(0.0, 0.0, 0.0);
+    this->scale = 1;
+    this->rotation = glm::mat4(); // Identity, no rotation
+  }
+
+  // used for instancs with varying positions, orientations, or scales
+  Instance(Model* model, glm::vec3 translation, glm::mat4 rotation, int scale,
+      glm::vec3 color, int textureIndex) {
+    this->model = model;
+    this->translation = translation;
+    this->rotation = rotation;
+    this->scale = scale;
+    this->color = color;
+    this->textureIndex = textureIndex;
+  }
+};
 
 #endif

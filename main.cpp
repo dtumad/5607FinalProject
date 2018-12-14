@@ -36,8 +36,9 @@ const char* INSTRUCTIONS =
 #include "glm/gtc/type_ptr.hpp"
 
 #include <cstdio>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <math.h>
 #include <string>
 #include <vector>
 #include "model.h"
@@ -48,6 +49,7 @@ const char* INSTRUCTIONS =
 #include "imgui-master/examples/imgui_impl_opengl3.h"
 #include "imgui-master/examples/libs/gl3w/GL/gl3w.h"
 
+#define _USE_MATH_DEFINES
 using namespace std;
 
 int screenWidth = 1200;
@@ -69,7 +71,6 @@ bool fullscreen = false;
 void Win2PPM(int width, int height);
 
 void drawGeometry(int shaderProgram, vector<Instance*> instances);
-void recreateModelData
 
 int main(int argc, char* argv[]) {
   srand(time(0));
@@ -132,31 +133,42 @@ int main(int argc, char* argv[]) {
 
 
   // create the function to be graphed;
-  vector<Function> functions;
   int bounds[4] = {-3,3,-3,3};
-  Function* fun = new Function("2 + .2(x+1)(y-1) - .25x", bounds, .05);
-  printf("fun: %s\n", fun->toString().c_str());
-  functions.push_back(*fun);
+  Function fun = Function("2 + .2(x+1)(y-1) - .25x", bounds, .05);
+  printf("fun: %s\n", fun.toString().c_str());
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
   const int numModels = 2;
   vector<Model*> models;
-  Model* modelGraph = loadModelFromFunction(*fun, &totalNumVerts);
+  Model* model2dPlane = loadModel((char*) "models/plane.txt", &totalNumVerts);
+  Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
   Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
+  models.push_back(model2dPlane);
   models.push_back(modelGraph);
   models.push_back(modelPot);
-  float* modelData = new float[(totalNumVerts)*8];
-  makeVertexArray(modelData, models, numModels, totalNumVerts);
+  float* modelData = makeVertexArray(models, totalNumVerts);
 
-  // Load instances based on each of the models for walls and doors
-  int loadedInstances = 0;
+  // Load instances based on models for coordinate planes and start function
   vector<Instance*> instances;
-  instances.push_back(makeInstance(modelGraph, 0, 0, 0, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->min_y, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->min_y, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->min_x, fun->max_y, 0, 1));
-  // instances.push_back(makeInstance(modelPot, -1, fun->max_x, fun->max_y, 0, 1));
+
+  glm::mat4 rotator = glm::mat4();
+  // x,y plane, no rotation of plane
+  instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
+
+  // x,z plane, rotate about x 90 degrees
+  rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(1.0f, 0, 0));
+  instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
+
+  // y, z plane, rotate about y 90 degrees
+  rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(0, 1.0f, 0));
+  instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
+
+  // starter graph
+  instances.push_back(new Instance(modelGraph, glm::vec3(0.2f, 0.3f, 0.1f), 0));
 
 
 
@@ -210,18 +222,9 @@ int main(int argc, char* argv[]) {
   glEnable(GL_DEPTH_TEST);
 
 
-<<<<<<< HEAD
   //Event Loop (Loop forever processing each event as fast as possible)
   bool show_demo_window = true;
   bool show_another_window = false;
-  ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-  char buf [250] = "test function";
-=======
-
-  printf("%s\n",INSTRUCTIONS);
-  /* VARIABLES CONTROLLING THE STATE DURING THE LOOP */
-  bool boogeyman = false;
->>>>>>> 270a084b8b0c92367ada3ad11c60b7bce5bca1e4
 
   ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f); // current input color
   char buf [250] = "2 + .2(x+1)(y-1) - .25x"; // current input text
@@ -272,26 +275,6 @@ int main(int argc, char* argv[]) {
         cam_dist -= windowEvent.wheel.y;
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
-
-<<<<<<< HEAD
-      else if (false) { // TODO: get the appropriate condition from the gui
-        string fun_str = "TODO" // TODO: get the new function string from the gui
-        Function fun = parseFunctionFromString(fun_str)
-        int dummy = 0;
-        Model* newModel = loadModelFromFunction(fun, &dummy);
-        copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
-        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
-=======
-      else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_SPACE) {
-        // Function* switchfun = fun;
-        // if (boogeyman) {switchfun = fun;}
-        // boogeyman = !boogeyman;
-        // int dummy = 0;
-        // Model* newModel = loadModelFromFunction(switchfun, &dummy);
-        // copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
-        // glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
->>>>>>> 270a084b8b0c92367ada3ad11c60b7bce5bca1e4
-      }
     }
 
 
@@ -340,25 +323,37 @@ int main(int argc, char* argv[]) {
       ImGui::SameLine();
       ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
       bool parseOkay = true;
-      if (ImGui::Button("Graph Function")){
+      if (ImGui::Button("Graph Another Function")){
           //Call function with text;
           // and color?
           printf("%s\n", buf);
-          parseOkay = fun->parseFunctionFromString(buf);
-          strcpy(currentEq, fun->toString().c_str());
-          int dummy = 0;
-          Model* newModel = loadModelFromFunction(*fun, &dummy);
-          models[0] = newModel;
-          copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
-          glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+          parseOkay = fun.parseFunctionFromString(buf);
+          if (parseOkay) {
+            strcpy(currentEq, fun.toString().c_str());
+            Model* newModel = loadModelFromFunction(fun, &totalNumVerts);
+            models.push_back(newModel);
+            instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+            free(modelData);
+            modelData = makeVertexArray(models, totalNumVerts);
+            glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+          }
       }
       ImGui::SameLine();
       if (ImGui::Button("Reset")) {
-        fun->parseFunctionFromString("");
-        int dummy = 0;
-        Model* newModel = loadModelFromFunction(*fun, &dummy);
-        models[0] = newModel;
-        copy(newModel->vertices, newModel->vertices + newModel->numVertices*8, modelData);
+        // Save the first model, the simple plane
+        while (models.size() > 1) {
+          free(models.back()->vertices);
+          free(models.back());
+          models.pop_back();
+        }
+        // Save the first 3 instances, the 3 instanced coordinate planes
+        while (instances.size() > 3) {
+          free(instances.back());
+          instances.pop_back();
+        }
+        totalNumVerts = models[0]->numVertices;
+        free(modelData);
+        modelData = makeVertexArray(models, totalNumVerts);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
       if (parseOkay) {
@@ -393,9 +388,6 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-
-
-
 // draw all the instaces in passed in array using the given shaderProgram
 void drawGeometry(int shaderProgram, vector<Instance*> instances){
   GLint uniTexID = glGetUniformLocation(shaderProgram, "texID");
@@ -405,18 +397,13 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances){
     // set color for non textured things
     if (inst->textureIndex == -1) {
       GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");
-    	glm::vec3 colVec(inst->colR,inst->colG,inst->colB);
-    	glUniform3fv(uniColor, 1, glm::value_ptr(colVec));
+    	glUniform3fv(uniColor, 1, glm::value_ptr(inst->color));
     }
 
     // move the objects around the world
-    glm::mat4 m = glm::mat4();
-    m = glm::translate(m,glm::vec3(inst->objx,inst->objy,inst->objz));
+    glm::mat4 m = inst->rotation;
+    m = glm::translate(m,inst->translation);
     m = glm::scale(m,glm::vec3(inst->scale, inst->scale, inst->scale));
-    if (inst->rotate) {
-      m = glm::rotate(m,timePast * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
-      m = glm::rotate(m,timePast * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
-    }
 
     GLint uniModel = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(m)); //pass model matrix to shader

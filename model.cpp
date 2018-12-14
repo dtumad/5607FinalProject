@@ -8,7 +8,7 @@ using namespace std;
 // returns a model loaded from modelFile name, and updates prevStartVertex for next call
 // code mostly comes from generalize code from Stephen
 Model* loadModel(char* modelFileName, int* prevStartVertex) {
-  Model* model = (Model*) malloc(sizeof(Model));
+  Model* model = new Model;
 
   ifstream modelFile;
   modelFile.open(modelFileName);
@@ -100,24 +100,12 @@ void cross(float* ret, float a1, float a2, float a3,
 
 // takes models and puts all vertices into a common Array
 // allows the common array to be passed into OpenGL
-void makeVertexArray(float* modelData, vector<Model*> models,
-                        int numModels, int totalNumVerts) {
+float* makeVertexArray(vector<Model*> models, int totalNumVerts) {
+  float* modelData = (float*) malloc(totalNumVerts * 8 * sizeof(float));
   int counter = 0;
   for(Model* m : models) {
     copy(m->vertices, m->vertices + m->numVertices*8, modelData + counter);
     counter += m->numVertices*8;
   }
-}
-
-
-// HELPER FUNCTIONS FOR INSTANCES
-// helper function for creating an instance
-Instance* makeInstance(Model* m, int t, float x, float y, float z, float s) {
-  Instance* i = new Instance;
-  i->model = m;
-  i->textureIndex = t;
-  i->objx = x; i->objy = y; i->objz = z; i->scale = s;
-  i->rotate = false;
-  i->colR = .2; i->colG = .3; i->colB = .1;
-  return i;
+  return modelData;
 }
