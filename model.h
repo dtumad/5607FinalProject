@@ -69,4 +69,9 @@ struct Instance {
   }
 };
 
+struct WorldStates {
+  bool animating;
+  bool coordsOn;
+};
+
 #endif

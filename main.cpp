@@ -70,7 +70,7 @@ float colR = 1, colG = 0, colB = 0;
 bool initGridTexture(GLuint* tex, char r, char g, char b);
 GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 void Win2PPM(int width, int height);
-void drawGeometry(int shaderProgram, vector<Instance*> instances, bool animating);
+void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws);
 
 int main(int argc, char* argv[]) {
   srand(time(0));
@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
   glBindVertexArray(0); //Unbind the VAO in case we want to create a new one
   glEnable(GL_DEPTH_TEST);
 
-
+  WorldStates ws;
   // Event Loop (Loop forever processing each event as fast as possible)
   bool show_demo_window = true;
   bool show_another_window = false;
@@ -215,9 +215,11 @@ int main(int argc, char* argv[]) {
   int intbuf2;
   int GuiLocation[4] = {0,0,0,0};
   // States of animation event
-  bool animating = false;
+  ws.animating = false;
   float animateStartTime;
   int itplModelStart;
+  //Turn on/off coordinate frame
+  ws.coordsOn = true;
   // States of user input window events
   SDL_Event windowEvent;
   bool quit = false; // stop loop
@@ -285,7 +287,7 @@ int main(int argc, char* argv[]) {
     glUniform1i(glGetUniformLocation(texturedShader, "tex0"), 0);
 
     glBindVertexArray(vao);
-    drawGeometry(texturedShader, instances, animating);
+    drawGeometry(texturedShader, instances, ws);
 
 
     /* IMGUI PORTION OF THE GAMELOOP */
@@ -313,7 +315,7 @@ int main(int argc, char* argv[]) {
       ImGui::InputText("##fnxn_text", buf, IM_ARRAYSIZE(buf));
 
       // Plot the user's input function when the button is pressed.
-      if (ImGui::Button("Graph Another Function")){
+      if (ImGui::Button("Graph A New Function")){
           //Call function with text;
           // and color?
           printf("%s\n", buf);
@@ -359,6 +361,10 @@ int main(int argc, char* argv[]) {
         ImGui::Text("  %d: %s", i+1, functions[i].toString().c_str());
       }
 
+      if (ImGui::Button("Toggle Coordinate Frame")){
+        ws.coordsOn = !ws.coordsOn;
+      }
+
       // Take user input for functions to interpolate between.
       ImGui::Text("Interpolate between two given function indices: ");
       ImGui::PushItemWidth(100);
@@ -381,8 +387,8 @@ int main(int argc, char* argv[]) {
 
       // Set starting states of an interpolation when the button is pressed.
       if (ImGui::Button("Interpolate")){
-        if (!animating) {
-          animating = true;
+        if (!ws.animating) {
+          ws.animating = true;
           animateStartTime = timePast;
           Function itplFun = functions[intbuf1-1];
           functions.push_back(itplFun);
@@ -401,7 +407,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Update model for animation state
-    if (animating) {
+    if (ws.animating) {
       if (timePast-animateStartTime > 5) {
         // Done animating, remove all references to animated function
         free(instances.back());
@@ -411,7 +417,7 @@ int main(int argc, char* argv[]) {
         free(models.back());
         models.pop_back();
         functions.pop_back();
-        animating = false;
+        ws.animating = false;
       }
       else {
         // Calculate a new model based on interpolation state
@@ -452,14 +458,19 @@ int main(int argc, char* argv[]) {
 }
 
 // draw all the instaces in passed in array using the given shaderProgram
-void drawGeometry(int shaderProgram, vector<Instance*> instances, bool animating){
+void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws){
   GLint uniTexID = glGetUniformLocation(shaderProgram, "texID");
 
   for (Instance* inst : instances) {
     // Hide non-animated functions during animation event
-    if (animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
+    if (ws.animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
       || inst==instances.back())) {
         continue;
+    }
+
+    // Hide the first 3 instances, the frame planes, when coords are toggled off
+    if(!ws.coordsOn && (inst==instances[0] || inst==instances[1] || inst==instances[2])) {
+      continue;
     }
 
     // set color for non textured things
