@@ -38,7 +38,6 @@ void cross(float* ret, float a1, float a2, float a3,
 float* makeVertexArray(vector<Model*> models, int totalNumVerts);
 
 // represents one instance of an object in the world
-// TODO: I don't think scale works correctly
 struct Instance {
   Model* model;
   int textureIndex;

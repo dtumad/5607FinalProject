@@ -217,7 +217,7 @@ int main(int argc, char* argv[]) {
   // States of animation event
   bool animating = false;
   float animateStartTime;
-  float* itplModelStart;
+  int itplModelStart;
   // States of user input window events
   SDL_Event windowEvent;
   bool quit = false; // stop loop
@@ -386,7 +386,7 @@ int main(int argc, char* argv[]) {
           animateStartTime = timePast;
           Function itplFun = functions[intbuf1-1];
           functions.push_back(itplFun);
-          itplModelStart = modelData + totalNumVerts * 8 * sizeof(float);
+          itplModelStart = totalNumVerts * 8;
           Model* newModel = loadModelFromFunction(itplFun, &totalNumVerts);
           models.push_back(newModel);
           instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
@@ -402,10 +402,12 @@ int main(int argc, char* argv[]) {
 
     // Update model for animation state
     if (animating) {
-      if (timePast-animateStartTime > 2000) {
+      if (timePast-animateStartTime > 5) {
         // Done animating, remove all references to animated function
         free(instances.back());
         instances.pop_back();
+        totalNumVerts -= models.back()->numVertices;
+        free(models.back()->vertices);
         free(models.back());
         models.pop_back();
         functions.pop_back();
@@ -414,15 +416,16 @@ int main(int argc, char* argv[]) {
       else {
         // Calculate a new model based on interpolation state
         functions.back().interpolateFunctions(functions[intbuf1-1],
-          functions[intbuf2-1], timePast-animateStartTime/2000.0f);
+          functions[intbuf2-1], (timePast-animateStartTime)/5.0f);
+        int dummy = totalNumVerts - models.back()->numVertices;
+        free(models.back()->vertices);
         free(models.back());
         models.pop_back();
-        int dummy = 0;
         Model* newModel = loadModelFromFunction(functions.back(), &dummy);
         models.push_back(newModel);
         instances.back()->model = newModel;
-        copy(newModel->vertices, newModel->vertices + newModel->numVertices * 8,
-          itplModelStart);
+        copy(newModel->vertices, newModel->vertices + (newModel->numVertices * 8),
+          modelData + itplModelStart);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
     }
@@ -457,7 +460,7 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, bool animating
     if (animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
       || inst==instances.back())) {
         continue;
-      }
+    }
 
     // set color for non textured things
     if (inst->textureIndex == -1) {

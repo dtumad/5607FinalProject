@@ -115,6 +115,7 @@ void Function::interpolateFunctions(Function f, Function g, float t){
       this->coefficients[i][j] = fContribution + gContribution;
     }
   }
+  printf("Finished interpolate\n");
 }
 
 float Function::eval(float x, float y){
