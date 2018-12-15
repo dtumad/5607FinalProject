@@ -70,7 +70,7 @@ float colR = 1, colG = 0, colB = 0;
 bool initGridTexture(GLuint* tex, char r, char g, char b);
 GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 void Win2PPM(int width, int height);
-void drawGeometry(int shaderProgram, vector<Instance*> instances);
+void drawGeometry(int shaderProgram, vector<Instance*> instances, bool animating);
 
 int main(int argc, char* argv[]) {
   srand(time(0));
@@ -205,14 +205,20 @@ int main(int argc, char* argv[]) {
   glEnable(GL_DEPTH_TEST);
 
 
-  //Event Loop (Loop forever processing each event as fast as possible)
+  // Event Loop (Loop forever processing each event as fast as possible)
   bool show_demo_window = true;
   bool show_another_window = false;
-
   ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f); // current input color
-  char buf [250] = "2 + .2(x+1)(y-1) - .25x"; // current input text
-  bool parseOkay = true; // last input was valid
+  // Gui user input buffers
+  char buf [250] = "2 + .2(x+1)(y-1) - .25x";
+  int intbuf1;
+  int intbuf2;
   int GuiLocation[4] = {0,0,0,0};
+  // States of animation event
+  bool animating = false;
+  float animateStartTime;
+  float* itplModelStart;
+  // States of user input window events
   SDL_Event windowEvent;
   bool quit = false; // stop loop
   bool dragging = false; // mouse button is down
@@ -279,7 +285,7 @@ int main(int argc, char* argv[]) {
     glUniform1i(glGetUniformLocation(texturedShader, "tex0"), 0);
 
     glBindVertexArray(vao);
-    drawGeometry(texturedShader, instances);
+    drawGeometry(texturedShader, instances, animating);
 
 
     /* IMGUI PORTION OF THE GAMELOOP */
@@ -300,10 +306,13 @@ int main(int argc, char* argv[]) {
       float color[3] = {0,0,255};
       ImGui::ColorEdit3("Graph Color", color); // Edit 3 floats representing a color
       initGridTexture(&tex0, color[0], color[1], color[2]);
+
+      // Get user input for function string
       ImGui::Text("Function: ");
       ImGui::SameLine();
-      ImGui::InputText(" ", buf, IM_ARRAYSIZE(buf));
-      bool parseOkay = true;
+      ImGui::InputText("##fnxn_text", buf, IM_ARRAYSIZE(buf));
+
+      // Plot the user's input function when the button is pressed.
       if (ImGui::Button("Graph Another Function")){
           //Call function with text;
           // and color?
@@ -322,6 +331,8 @@ int main(int argc, char* argv[]) {
             ImGui::Text("Error parsing the input");
           }
       }
+
+      // Remove all graphed functions when the button is pressed.
       ImGui::SameLine();
       if (ImGui::Button("Reset")) {
         // Save the first model, the simple plane
@@ -341,14 +352,80 @@ int main(int argc, char* argv[]) {
         modelData = makeVertexArray(models, totalNumVerts);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
+
+      // Tell the user what functions are currently graphed.
       ImGui::Text("Currently Displaying:");
       for (int i=0; i<functions.size(); i++) {
         ImGui::Text("  %d: %s", i+1, functions[i].toString().c_str());
       }
+
+      // Take user input for functions to interpolate between.
+      ImGui::Text("Interpolate between two given function indices: ");
+      ImGui::PushItemWidth(100);
+      ImGui::InputInt("##intpl_idx1", &intbuf1);
+      if (intbuf1 < 1) {
+        intbuf1 = 1;
+      }
+      else if (intbuf1 > functions.size()) {
+        intbuf1 = functions.size();
+      }
+      ImGui::SameLine();
+      ImGui::InputInt("##intpl_idx2", &intbuf2);
+      if (intbuf2 < 1) {
+        intbuf2 = 1;
+      }
+      else if (intbuf2 > functions.size()) {
+        intbuf2 = functions.size();
+      }
+      ImGui::PopItemWidth();
+
+      // Set starting states of an interpolation when the button is pressed.
+      if (ImGui::Button("Interpolate")){
+        if (!animating) {
+          animating = true;
+          animateStartTime = timePast;
+          Function itplFun = functions[intbuf1-1];
+          functions.push_back(itplFun);
+          itplModelStart = modelData + totalNumVerts * 8 * sizeof(float);
+          Model* newModel = loadModelFromFunction(itplFun, &totalNumVerts);
+          models.push_back(newModel);
+          instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+          free(modelData);
+          modelData = makeVertexArray(models, totalNumVerts);
+          glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+        }
+      }
+
+      // Done with gui
       ImGui::End();
     }
 
-
+    // Update model for animation state
+    if (animating) {
+      if (timePast-animateStartTime > 2000) {
+        // Done animating, remove all references to animated function
+        free(instances.back());
+        instances.pop_back();
+        free(models.back());
+        models.pop_back();
+        functions.pop_back();
+        animating = false;
+      }
+      else {
+        // Calculate a new model based on interpolation state
+        functions.back().interpolateFunctions(functions[intbuf1-1],
+          functions[intbuf2-1], timePast-animateStartTime/2000.0f);
+        free(models.back());
+        models.pop_back();
+        int dummy = 0;
+        Model* newModel = loadModelFromFunction(functions.back(), &dummy);
+        models.push_back(newModel);
+        instances.back()->model = newModel;
+        copy(newModel->vertices, newModel->vertices + newModel->numVertices * 8,
+          itplModelStart);
+        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+      }
+    }
 
     /* PERFORM THE ACTUAL RENDERING */
     ImGui::Render();
@@ -372,10 +449,15 @@ int main(int argc, char* argv[]) {
 }
 
 // draw all the instaces in passed in array using the given shaderProgram
-void drawGeometry(int shaderProgram, vector<Instance*> instances){
+void drawGeometry(int shaderProgram, vector<Instance*> instances, bool animating){
   GLint uniTexID = glGetUniformLocation(shaderProgram, "texID");
 
   for (Instance* inst : instances) {
+    // Hide non-animated functions during animation event
+    if (animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
+      || inst==instances.back())) {
+        continue;
+      }
 
     // set color for non textured things
     if (inst->textureIndex == -1) {
@@ -402,7 +484,7 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances){
 
 
 bool initGridTexture(GLuint* tex, char r, char g, char b) {
-  printf("%d %d %d\n", r, g, b);
+  //printf("%d %d %d\n", r, g, b);
   int w = 50; int h = 50;
   SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_BGR24);
   SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_BGR24);
