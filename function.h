@@ -18,6 +18,7 @@ public:
   float sample_rate; //distance to move between samples
   float col[4];
   char buf[255];
+  bool showing;
   char* parsingError;
 
   // SHOULDN'T BE CALLED OUTSIDE function.cpp
@@ -37,10 +38,10 @@ public:
     this->max_x = bounds[1];
     this->min_y = bounds[2];
     this->max_y = bounds[3];
-    this->col[0] = .2 ;
-    this->col[1] = .8;
-    this->col[2] = .6;
-    this->col[3] = .5;
+    this->col[0] = (rand()%10)/10.0f;
+    this->col[1] = (rand()%10)/10.0f;
+    this->col[2] = (rand()%10)/10.0f;
+    this->col[3] = 1;
   }
 
   void setFunctionDegree(int degree);

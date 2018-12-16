@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
   // create the function to be graphed;
   int bounds[4] = {-3,3,-3,3};
   vector<Function> functions;
-  functions.push_back(Function(".5xy", bounds, .025));
+  functions.push_back(Function(".5xy", bounds, .05));
 
 
 
@@ -225,7 +225,8 @@ int main(int argc, char* argv[]) {
   int itplModelStart;
   //Turn on/off coordinate frame
   ws.coordsOn = true;
-
+  bool showing;
+  bool toggleCoord;
   // States of user input window events
   SDL_Event windowEvent;
   while (!ws.quit){ //Event Loop (Loop forever processing each event as fast as possible)
@@ -271,7 +272,7 @@ int main(int argc, char* argv[]) {
 
 
     // Clear the screen to default color
-    glClearColor(.2f, 0.4f, 0.8f, 1.0f);
+    glClearColor(0,0,0, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(texturedShader);
 
@@ -307,14 +308,13 @@ int main(int argc, char* argv[]) {
     ImGui::NewFrame();
 
     // Elements of the GUI relevant to a specific function
+    bool toggleCoord;
     {
       ImGui::Begin("Main Control");
-  //  {
-  //    ImGui::Begin("Main Control");
 
       // Add a window for a new function
       if (ImGui::Button("Graph A New Function")){
-          Function newFun = Function("", bounds, 0.025);
+          Function newFun = Function("", bounds, 0.05);
           functions.push_back(newFun);
           Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
           models.push_back(newModel);
@@ -351,9 +351,7 @@ int main(int argc, char* argv[]) {
         ImGui::Text("  %d: %s", i+1, functions[i].toString().c_str());
       }
 
-      if (ImGui::Button("Toggle Coordinate Frame")){
-        ws.coordsOn = !ws.coordsOn;
-      }
+      ImGui::Checkbox("Show Coordinate Frame", &ws.coordsOn);
 
       // Take user input for functions to interpolate between.
       ImGui::Text("Interpolate between two functions: ");
@@ -392,38 +390,39 @@ int main(int argc, char* argv[]) {
         }
       }
 
-          ImGui::Spacing();
-          ImGui::Separator();
-          ImGui::Separator();
-          ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Separator();
+      ImGui::Separator();
+      ImGui::Separator();
 
 
       for (int i = 0; i < functions.size(); i++) {
         // Get user input for function string
-        char fname[25];
+        char fname[22];
         sprintf(fname, "Function: %d", i + 1);
         if (ImGui::CollapsingHeader(fname, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
 
-          char cname[25];
+          char cname[22]; char dname[22];
           sprintf(cname, "##cnxn_col%d", i);
+          sprintf(dname, "##dnxn_dis%d", i);
           ImGui::ColorEdit4(cname, functions[i].col);
+          ImGui::Checkbox(dname, &functions[i].showing);
 
-          char iname[25];
+
+          char iname[22];
           sprintf(iname, "##fnxn_text%d", i);
-          bool enter = ImGui::InputText(iname, functions[i].buf, 255, ImGuiInputTextFlags_EnterReturnsTrue);
+          bool enter = ImGui::InputText(iname, functions[i].buf, 255, ImGuiInputTextFlags_None);
           if (strlen(functions[i].parsingError) > 1) {
             ImGui::Text("Parse Error: %s", functions[i].parsingError);
           }
-          char parseInputLabel[100];
-          sprintf(parseInputLabel, "Parse Input##%s", iname);
-          if (ImGui::Button(parseInputLabel) || enter) {
+          ImGui::Text("Enter an equation:");
+          if (enter) {
             if (functions[i].parseFunctionFromString(functions[i].buf)) {
               Model* newModel = loadModelFromFunction(functions[i], &(models[i+1]->startVertex));
               free(models[i+1]->vertices);
               free(models[i+1]);
               models[i+1] = newModel;
               instances[i+3]->model = newModel;
-              // instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
               free(modelData);
               modelData = makeVertexArray(models, totalNumVerts);
               glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
