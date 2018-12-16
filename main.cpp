@@ -67,7 +67,7 @@ float colR = 1, colG = 0, colB = 0;
 
 
 // helper functions called by main
-bool initGridTexture(GLuint* tex, float r, float g, float b, float a);
+bool initGridTexture(GLuint* tex, int t, float col[4], int w, int h);
 GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 void Win2PPM(int width, int height);
 void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws);
@@ -151,15 +151,15 @@ int main(int argc, char* argv[]) {
   glm::mat4 rotator = glm::mat4();
   // x,y plane, no rotation of plane
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 1));
   // x,z plane, rotate about x 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(1.0f, 0, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 1));
   // y, z plane, rotate about y 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(0, 1.0f, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 1));
 
   // starter graph
   instances.push_back(new Instance(modelGraph, glm::vec3(0.2f, 0.3f, 0.1f), 0));
@@ -167,7 +167,13 @@ int main(int argc, char* argv[]) {
 
 
   // initilize texture for the graph object
-  GLuint tex0;
+  const int MAX_TEXTURES = 5;
+  GLuint textures[MAX_TEXTURES];
+  glGenTextures(MAX_TEXTURES, textures);
+  float col[4] = {};
+  initGridTexture(textures, 1, col, 500, 500);
+
+
 
   /* OPENGL SETUP AND VERTEX STORAGE */
   //Build a Vertex Array Object (VAO) to store mapping of shader attributse to VBO
@@ -216,7 +222,7 @@ int main(int argc, char* argv[]) {
   float animateStartTime;
   int itplModelStart;
   //Turn on/off coordinate frame
-  ws.coordsOn = false;
+  ws.coordsOn = true;
 
   // States of user input window events
   SDL_Event windowEvent;
@@ -279,9 +285,14 @@ int main(int argc, char* argv[]) {
     glm::mat4 proj = glm::perspective(3.14f/3, screenWidth / (float) screenHeight, 0.1f, 100.0f); //FOV, aspect, near, far
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex0);
-    glUniform1i(glGetUniformLocation(texturedShader, "tex0"), 0);
+    // load all of the textures up
+    for(int i = 0; i < MAX_TEXTURES; i++) {
+      glActiveTexture(GL_TEXTURE0+i);
+      glBindTexture(GL_TEXTURE_2D, textures[i]);
+      char texture_name[5];
+      sprintf(texture_name, "tex%d", i);
+      glUniform1i(glGetUniformLocation(texturedShader, texture_name), i);
+    }
 
     glBindVertexArray(vao);
     drawGeometry(texturedShader, instances, ws);
@@ -416,7 +427,7 @@ int main(int argc, char* argv[]) {
     // update texture colors
     for (int i = 0; i < functions.size(); i++) {
       float* col = functions[i].col;
-      initGridTexture(&tex0, col[0], col[1], col[2], col[3]);
+      initGridTexture(textures, 0, col, 50, 50);
     }
 
 
@@ -511,9 +522,9 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
 }
 
 // load a texture for a graph corresponding to the given colors
-bool initGridTexture(GLuint* tex, float red, float green, float blue, float alpha) {
-  Uint8 r = red*255; Uint8 g = green*255; Uint8 b = blue*255; Uint8 a = alpha*255;
-  int w = 100; int h = 100;
+bool initGridTexture(GLuint* tex, int t, float col[4], int w, int h) {
+  Uint8 r = col[0]*255; Uint8 g = col[1]*255;
+  Uint8 b = col[2]*255; Uint8 a = col[3]*255;
   SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
   for (int x = 0; x < w; x++) {
     for (int y = 0; y < h; y++) {
@@ -533,10 +544,8 @@ bool initGridTexture(GLuint* tex, float red, float green, float blue, float alph
 
     }
   }
-
-  glGenTextures(1, tex);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, *tex);
+  glActiveTexture(GL_TEXTURE0 + t);
+  glBindTexture(GL_TEXTURE_2D, tex[t]);
   //What to do outside 0-1 range
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
