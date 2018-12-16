@@ -404,10 +404,9 @@ int main(int argc, char* argv[]) {
         sprintf(fname, "Function: %d", i + 1);
         if (ImGui::CollapsingHeader(fname, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
 
-
-          ImGui::ColorEdit4("Graph Color", functions[i].col);
-
-
+          char cname[25];
+          sprintf(cname, "##cnxn_col%d", i);
+          ImGui::ColorEdit4(cname, functions[i].col);
 
           char iname[25];
           sprintf(iname, "##fnxn_text%d", i);
