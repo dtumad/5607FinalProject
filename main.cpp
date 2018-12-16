@@ -488,10 +488,10 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
 
   for (Instance* inst : instances) {
     // Hide non-animated functions during animation event
-    if (ws.animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
-      || inst==instances.back())) {
-        continue;
-    }
+    // if (ws.animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
+    //   || inst==instances.back())) {
+    //     continue;
+    // }
 
     // Hide the first 3 instances, the frame planes, when coords are toggled off
     if(!ws.coordsOn && (inst==instances[0] || inst==instances[1] || inst==instances[2])) {
