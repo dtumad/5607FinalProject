@@ -153,15 +153,15 @@ int main(int argc, char* argv[]) {
   glm::mat4 rotator = glm::mat4();
   // x,y plane, no rotation of plane
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 10));
+    bounds[1] - bounds[0], glm::vec3(1, 1, 1), -1));
   // x,z plane, rotate about x 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(1.0f, 0, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 10));
+    bounds[1] - bounds[0], glm::vec3(1, 1, 1), -1));
   // y, z plane, rotate about y 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(0, 1.0f, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 10));
+    bounds[1] - bounds[0], glm::vec3(1, 1, 1), -1));
 
   // starter graph
   instances.push_back(new Instance(modelGraph, glm::vec3(0.2f, 0.3f, 0.1f), 0));
@@ -172,8 +172,6 @@ int main(int argc, char* argv[]) {
   const int MAX_TEXTURES = 10;
   GLuint textures[MAX_TEXTURES];
   glGenTextures(MAX_TEXTURES, textures);
-  float col[4] = {};
-  initGridTexture(textures, 10, col, 500, 500);
 
 
 
@@ -510,7 +508,7 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
     if(!ws.coordsOn && (inst==instances[0] || inst==instances[1] || inst==instances[2])) {
       continue;
     }
-    
+
     if (!inst->showing) continue;
     // set color for non textured things
     if (inst->textureIndex == -1) {

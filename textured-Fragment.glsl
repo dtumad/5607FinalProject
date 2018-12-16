@@ -83,7 +83,7 @@ void main() {
   vec3 viewDir = normalize(-pos); //We know the eye is at (0,0)! (Do you know why?)
   vec3 reflectDir = reflect(viewDir,normal);
   float spec = max(dot(reflectDir,lightDir),0.0);
-  if (dot(-lightDir,normal) <= 0.0) spec = 0; //No highlight if we are not facing the light
+  //if (dot(-lightDir,normal) <= 0.0) spec = 0; //No highlight if we are not facing the light
   vec3 specC = .8*vec3(1.0,1.0,1.0)*pow(spec,4);
   vec3 oColor = ambC+diffuseC+specC;
   outColor = vec4(oColor,a);

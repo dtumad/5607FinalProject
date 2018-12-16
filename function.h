@@ -41,6 +41,7 @@ public:
     this->col[1] = (rand()%10)/10.0f;
     this->col[2] = (rand()%10)/10.0f;
     this->col[3] = 1;
+    strcpy(buf, "");
   }
 
   void setFunctionDegree(int degree);
