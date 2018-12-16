@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
   // create the function to be graphed;
   int bounds[4] = {-3,3,-3,3};
   vector<Function> functions;
-  functions.push_back(Function(".5xy", bounds, .05));
+  functions.push_back(Function(".5xy", bounds, .025));
 
 
 
@@ -153,15 +153,15 @@ int main(int argc, char* argv[]) {
   glm::mat4 rotator = glm::mat4();
   // x,y plane, no rotation of plane
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 1));
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 10));
   // x,z plane, rotate about x 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(1.0f, 0, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 1));
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 10));
   // y, z plane, rotate about y 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(0, 1.0f, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
-    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 1));
+    bounds[1] - bounds[0], glm::vec3(0, 0, 0), 10));
 
   // starter graph
   instances.push_back(new Instance(modelGraph, glm::vec3(0.2f, 0.3f, 0.1f), 0));
@@ -169,11 +169,11 @@ int main(int argc, char* argv[]) {
 
 
   // initilize texture for the graph object
-  const int MAX_TEXTURES = 5;
+  const int MAX_TEXTURES = 10;
   GLuint textures[MAX_TEXTURES];
   glGenTextures(MAX_TEXTURES, textures);
   float col[4] = {};
-  initGridTexture(textures, 1, col, 500, 500);
+  initGridTexture(textures, 10, col, 500, 500);
 
 
 
@@ -291,7 +291,7 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < MAX_TEXTURES; i++) {
       glActiveTexture(GL_TEXTURE0+i);
       glBindTexture(GL_TEXTURE_2D, textures[i]);
-      char texture_name[5];
+      char texture_name[6];
       sprintf(texture_name, "tex%d", i);
       glUniform1i(glGetUniformLocation(texturedShader, texture_name), i);
     }
@@ -314,11 +314,11 @@ int main(int argc, char* argv[]) {
 
       // Add a window for a new function
       if (ImGui::Button("Graph A New Function")){
-          Function newFun = Function("", bounds, 0.05);
+          Function newFun = Function("", bounds, 0.025);
           functions.push_back(newFun);
           Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
           models.push_back(newModel);
-          instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+          instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), functions.size()-1));
           free(modelData);
           modelData = makeVertexArray(models, totalNumVerts);
           glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
@@ -443,7 +443,7 @@ int main(int argc, char* argv[]) {
     // update texture colors
     for (int i = 0; i < functions.size(); i++) {
       float* col = functions[i].col;
-      initGridTexture(textures, 0, col, 50, 50);
+      initGridTexture(textures, i, col, 50, 50);
     }
 
 
@@ -546,7 +546,7 @@ bool initGridTexture(GLuint* tex, int t, float col[4], int w, int h) {
     for (int y = 0; y < h; y++) {
       Uint8* p = ((Uint8*) surface->pixels);
       if (x == 0 || y == 0 || x == w-1 || y == h-1) {
-        p[y*surface->pitch + x*4] = 255;
+        p[y*surface->pitch + x*4] = 0;
         p[y*surface->pitch + x*4 + 1] = 0;
         p[y*surface->pitch + x*4 + 2] = 0;
         p[y*surface->pitch + x*4 + 3] = 0;
