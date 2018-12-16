@@ -112,6 +112,8 @@ int main(int argc, char* argv[]) {
   ImGui_ImplOpenGL3_Init("#version 130");
   // Setup Style
   ImGui::StyleColorsDark();
+  ImVec4 bcol = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+  ImGui::PushStyleColor(ImGuiCol_Header, bcol);
 
 	//Load OpenGL extentions with GLAD
 	if (gladLoadGLLoader(SDL_GL_GetProcAddress)){
@@ -305,38 +307,10 @@ int main(int argc, char* argv[]) {
     ImGui::NewFrame();
 
     // Elements of the GUI relevant to a specific function
-    for (int i = 0; i < functions.size(); i++) {
-      // Get user input for function string
-      char fname[25];
-      sprintf(fname, "Function: %d", i);
-      ImGui::Begin(fname);
-
-      ImGui::ColorEdit4("Graph Color", functions[i].col);
-
-      char iname[25];
-      sprintf(iname, "##fnxn_text%d", i);
-      bool enter = ImGui::InputText(iname, functions[i].buf, 255, ImGuiInputTextFlags_EnterReturnsTrue);
-      if (strlen(functions[i].parsingError) > 1) {
-        ImGui::Text("Parse Error: %s", functions[i].parsingError);
-      }
-      if (ImGui::Button("Parse Input") || enter) {
-        if (functions[i].parseFunctionFromString(functions[i].buf)) {
-          Model* newModel = loadModelFromFunction(functions[i], &(models[i+1]->startVertex));
-          free(models[i+1]->vertices);
-          free(models[i+1]);
-          models[i+1] = newModel;
-          instances[i+3]->model = newModel;
-          // instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
-          free(modelData);
-          modelData = makeVertexArray(models, totalNumVerts);
-          glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
-        }
-      }
-      ImGui::Text("Parsed Eq: %s", functions[i].toString().c_str());
-      ImGui::End();
-    }
     {
       ImGui::Begin("Main Control");
+  //  {
+  //    ImGui::Begin("Main Control");
 
       // Add a window for a new function
       if (ImGui::Button("Graph A New Function")){
@@ -415,6 +389,48 @@ int main(int argc, char* argv[]) {
           free(modelData);
           modelData = makeVertexArray(models, totalNumVerts);
           glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+        }
+      }
+
+          ImGui::Spacing();
+          ImGui::Separator();
+          ImGui::Separator();
+          ImGui::Separator();
+
+
+      for (int i = 0; i < functions.size(); i++) {
+        // Get user input for function string
+        char fname[25];
+        sprintf(fname, "Function: %d", i + 1);
+        if (ImGui::CollapsingHeader(fname, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+
+
+          ImGui::ColorEdit4("Graph Color", functions[i].col);
+
+
+
+          char iname[25];
+          sprintf(iname, "##fnxn_text%d", i);
+          bool enter = ImGui::InputText(iname, functions[i].buf, 255, ImGuiInputTextFlags_EnterReturnsTrue);
+          if (strlen(functions[i].parsingError) > 1) {
+            ImGui::Text("Parse Error: %s", functions[i].parsingError);
+          }
+          char parseInputLabel[100];
+          sprintf(parseInputLabel, "Parse Input##%s", iname);
+          if (ImGui::Button(parseInputLabel) || enter) {
+            if (functions[i].parseFunctionFromString(functions[i].buf)) {
+              Model* newModel = loadModelFromFunction(functions[i], &(models[i+1]->startVertex));
+              free(models[i+1]->vertices);
+              free(models[i+1]);
+              models[i+1] = newModel;
+              instances[i+3]->model = newModel;
+              // instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+              free(modelData);
+              modelData = makeVertexArray(models, totalNumVerts);
+              glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+            }
+          }
+          ImGui::Text("Parsed Eq: %s", functions[i].toString().c_str());
         }
       }
 
