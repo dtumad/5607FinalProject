@@ -402,12 +402,11 @@ int main(int argc, char* argv[]) {
         sprintf(fname, "Function: %d", i + 1);
         if (ImGui::CollapsingHeader(fname, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
 
-          char cname[22]; char dname[22];
-          sprintf(cname, "##cnxn_col%d", i);
-          sprintf(dname, "##dnxn_dis%d", i);
+          char cname[22]; char dname[25];
+          sprintf(cname, "##col%d", i);
+          sprintf(dname, "Display##dis%d:", i);
           ImGui::ColorEdit4(cname, functions[i].col);
-          ImGui::Checkbox(dname, &functions[i].showing);
-
+          ImGui::Checkbox(dname, &(instances[i+3]->showing));
 
           char iname[22];
           sprintf(iname, "##fnxn_text%d", i);
@@ -511,7 +510,8 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
     if(!ws.coordsOn && (inst==instances[0] || inst==instances[1] || inst==instances[2])) {
       continue;
     }
-
+    
+    if (!inst->showing) continue;
     // set color for non textured things
     if (inst->textureIndex == -1) {
       GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");

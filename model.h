@@ -45,6 +45,7 @@ struct Instance {
   glm::vec3 color;
   float scale;
   glm::mat4 rotation;
+  bool showing;
 
   // used for making graph instances
   Instance(Model* model, glm::vec3 color, int textureIndex) {
@@ -55,6 +56,7 @@ struct Instance {
     this->translation = glm::vec3(0.0, 0.0, 0.0);
     this->scale = 1;
     this->rotation = glm::mat4(); // Identity, no rotation
+    this->showing = true;
   }
 
   // used for instancs with varying positions, orientations, or scales
@@ -66,6 +68,7 @@ struct Instance {
     this->scale = scale;
     this->color = color;
     this->textureIndex = textureIndex;
+    this->showing = true;
   }
 };
 

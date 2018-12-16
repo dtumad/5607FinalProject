@@ -18,7 +18,6 @@ public:
   float sample_rate; //distance to move between samples
   float col[4];
   char buf[255];
-  bool showing;
   char* parsingError;
 
   // SHOULDN'T BE CALLED OUTSIDE function.cpp
