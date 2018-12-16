@@ -13,10 +13,11 @@ bool Function::parseFunctionFromString(string input){
   try {
     this->resetFunction();
     parseE(input, this);
+    strcpy(this->parsingError, "");
     return true;
   }
   catch(const std::exception& e) {
-    //printf("Couldn't parse the expression %s\n", e.what());
+    strcpy(this->parsingError, e.what());
     return false;
   }
 }
@@ -108,14 +109,15 @@ void Function::scaleFunction(float s){
 }
 void Function::interpolateFunctions(Function f, Function g, float t){
   this->setFunctionDegree(max(f.degree, g.degree));
+  float fContribution; float gContribution;
   for (int i = 0; i <= this->degree; i++) {
     for (int j = 0; j <= this->degree; j++) {
-      float fContribution = f.coefficients[i][j] * t;
-      float gContribution = g.coefficients[i][j] * (1-t);
+      fContribution = 0; gContribution = 0;
+      if (i <= f.degree) fContribution = f.coefficients[i][j] * t;
+      if (j <= g.degree) gContribution = g.coefficients[i][j] * (1-t);
       this->coefficients[i][j] = fContribution + gContribution;
     }
   }
-  printf("Finished interpolate\n");
 }
 
 float Function::eval(float x, float y){

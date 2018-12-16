@@ -5,9 +5,9 @@
 #include <math.h>
 using namespace std;
 
-// returns a model loaded from modelFile name, and updates prevStartVertex for next call
+// returns a model loaded from modelFile name, and updates startVertex for next call
 // code mostly comes from generalize code from Stephen
-Model* loadModel(char* modelFileName, int* prevStartVertex) {
+Model* loadModel(char* modelFileName, int* startVertex) {
   Model* model = new Model;
 
   ifstream modelFile;
@@ -20,17 +20,16 @@ Model* loadModel(char* modelFileName, int* prevStartVertex) {
     modelFile >> model->vertices[i];
   }
   model->numVertices = numLines/8;
-  model->startVertex = *prevStartVertex;
-  *prevStartVertex += model->numVertices;
+  model->startVertex = *startVertex;
+  *startVertex += model->numVertices;
 
   modelFile.close();
 
   return model;
 }
 
-//TODO: Currently loads model from a static input equation
 // samples points in the range x = [0,10), y = [0,10)
-Model* loadModelFromFunction(Function fun, int* prevStartVertex) {
+Model* loadModelFromFunction(Function fun, int* startVertex) {
   Model* model = (Model*) malloc(sizeof(Model));
   int numFloats = (fun.max_x - fun.min_x)*(fun.max_y - fun.min_y);
   numFloats *= 8*6*100/fun.sample_rate; //8 floats per vert, 6 verts per sample
@@ -43,8 +42,8 @@ Model* loadModelFromFunction(Function fun, int* prevStartVertex) {
     }
   }
   model->numVertices = i/8;
-  model->startVertex = *prevStartVertex;
-  *prevStartVertex += model->numVertices;
+  model->startVertex = *startVertex;
+  *startVertex += model->numVertices;
 
   return model;
 }

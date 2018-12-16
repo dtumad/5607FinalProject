@@ -3,16 +3,16 @@ flags = -g `sdl2-config --libs` `sdl2-config --cflags` -lGL -ldl -lSDL2 -lSDL2ma
 extras = imgui-master/imgui_demo.cpp
 objects = main.o model.o function.o imgui_opengl3.o imgui_sdl.o gl3w.o glad.o imgui.o imgui_widgets.o imgui_draw.o
 
-graph.out: $(objects)
+graph.out: $(objects) function.h model.h
 	g++ $(objects) $(flags) $(incl) -o graph.out
 
 main.o: main.cpp
 	g++ -O3 -g -c main.cpp
 
-model.o: model.cpp
+model.o: model.cpp model.h function.h
 	g++ -O3 -g -c model.cpp
 
-function.o: function.cpp
+function.o: function.cpp function.h
 	g++ -O3 -g -c function.cpp
 
 glad.o: glad/glad.c

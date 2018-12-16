@@ -67,7 +67,7 @@ float colR = 1, colG = 0, colB = 0;
 
 
 // helper functions called by main
-bool initGridTexture(GLuint* tex, char r, char g, char b);
+bool initGridTexture(GLuint* tex, float r, float g, float b, float a);
 GLuint InitShader(const char* vShaderFileName, const char* fShaderFileName);
 void Win2PPM(int width, int height);
 void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws);
@@ -130,21 +130,20 @@ int main(int argc, char* argv[]) {
   // create the function to be graphed;
   int bounds[4] = {-3,3,-3,3};
   vector<Function> functions;
-  functions.push_back(Function("2 + .2(x+1)(y-1) - .25x", bounds, .05));
-  Function fun = Function("2 + .2(x+1)(y-1) - .25x", bounds, .05);
-  printf("fun: %s\n", fun.toString().c_str());
+  functions.push_back(Function(".5xy", bounds, .05));
+
+
 
   //Load models that can be loaded into an instance
   int totalNumVerts = 0;
-  const int numModels = 2;
   vector<Model*> models;
   Model* model2dPlane = loadModel((char*) "models/plane.txt", &totalNumVerts);
-  Model* modelGraph = loadModelFromFunction(fun, &totalNumVerts);
-  Model* modelPot = loadModel((char*)"models/teapot.txt", &totalNumVerts);
+  Model* modelGraph = loadModelFromFunction(functions[0], &totalNumVerts);
   models.push_back(model2dPlane);
   models.push_back(modelGraph);
-  models.push_back(modelPot);
   float* modelData = makeVertexArray(models, totalNumVerts);
+
+
 
   // Load instances based on models for coordinate planes and start function
   vector<Instance*> instances;
@@ -153,12 +152,10 @@ int main(int argc, char* argv[]) {
   // x,y plane, no rotation of plane
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
     bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
-
   // x,z plane, rotate about x 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(1.0f, 0, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
     bounds[1] - bounds[0], glm::vec3(0, 0, 0), 0));
-
   // y, z plane, rotate about y 90 degrees
   rotator = glm::rotate(rotator, float(M_PI)/2.0f, glm::vec3(0, 1.0f, 0));
   instances.push_back(new Instance(model2dPlane, glm::vec3(0, 0, 0), rotator,
@@ -167,11 +164,10 @@ int main(int argc, char* argv[]) {
   // starter graph
   instances.push_back(new Instance(modelGraph, glm::vec3(0.2f, 0.3f, 0.1f), 0));
 
+
+
   // initilize texture for the graph object
   GLuint tex0;
-  initGridTexture(&tex0, 0, 0, 255);
-
-
 
   /* OPENGL SETUP AND VERTEX STORAGE */
   //Build a Vertex Array Object (VAO) to store mapping of shader attributse to VBO
@@ -202,35 +198,35 @@ int main(int argc, char* argv[]) {
   GLint uniView = glGetUniformLocation(texturedShader, "view");
   GLint uniProj = glGetUniformLocation(texturedShader, "proj");
   glBindVertexArray(0); //Unbind the VAO in case we want to create a new one
+
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
 
   WorldStates ws;
-  // Event Loop (Loop forever processing each event as fast as possible)
-  bool show_demo_window = true;
-  bool show_another_window = false;
-  ImVec4 color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f); // current input color
+  ws.quit = false; // stop loop
+  ws.dragging = false; // mouse button is down
   // Gui user input buffers
-  char buf [250] = "2 + .2(x+1)(y-1) - .25x";
   int intbuf1;
   int intbuf2;
-  int GuiLocation[4] = {0,0,0,0};
   // States of animation event
   ws.animating = false;
   float animateStartTime;
   int itplModelStart;
   //Turn on/off coordinate frame
-  ws.coordsOn = true;
+  ws.coordsOn = false;
+
   // States of user input window events
   SDL_Event windowEvent;
-  bool quit = false; // stop loop
-  bool dragging = false; // mouse button is down
-  while (!quit){ //Event Loop (Loop forever processing each event as fast as possible)
+  while (!ws.quit){ //Event Loop (Loop forever processing each event as fast as possible)
     while (SDL_PollEvent(&windowEvent)){  //inspect all events in the queue
       ImGui_ImplSDL2_ProcessEvent(&windowEvent);
 
       if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_ESCAPE
                     || windowEvent.type == SDL_QUIT) {
-        quit = true; //Exit event loop
+        ws.quit = true; //Exit event loop
       }
       else if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_f){ //If "f" is pressed
         fullscreen = !fullscreen;
@@ -238,7 +234,7 @@ int main(int argc, char* argv[]) {
       }
 
       // Handle mouse movement for rotation
-      else if (windowEvent.type == SDL_MOUSEMOTION && dragging) {
+      else if (windowEvent.type == SDL_MOUSEMOTION && ws.dragging) {
         // adjust angles, clamp z rotation, and cache trig functions
         SDL_MouseMotionEvent m = windowEvent.motion;
         look -= (float) m.xrel / 250.0f * (cosgaze > 0 ? 1 : -1);
@@ -248,22 +244,23 @@ int main(int argc, char* argv[]) {
       }
       else if (windowEvent.type == SDL_MOUSEBUTTONDOWN
         && windowEvent.button.button == SDL_BUTTON_LEFT) {
-          SDL_MouseButtonEvent m = windowEvent.button;
-          bool xOutGui = m.x < GuiLocation[0] || m.x > GuiLocation[2];
-          bool yOutGui = m.y < GuiLocation[1] || m.y > GuiLocation[3];
-          dragging = xOutGui || yOutGui;
+          ws.dragging = !ImGui::GetIO().WantCaptureMouse;
       }
       else if (windowEvent.type == SDL_MOUSEBUTTONUP
         && windowEvent.button.button == SDL_BUTTON_LEFT) {
-          dragging = false;
+          ws.dragging = false;
       }
 
       // handle scrolling farther away or closer
       else if (windowEvent.type == SDL_MOUSEWHEEL) {
-        cam_dist -= windowEvent.wheel.y;
+        if (!ImGui::GetIO().WantCaptureMouse) {
+          cam_dist -= windowEvent.wheel.y;
+        }
         cam_dist = cam_dist < 5 ? 5 : cam_dist;
       }
     }
+
+
 
     // Clear the screen to default color
     glClearColor(.2f, 0.4f, 0.8f, 1.0f);
@@ -290,48 +287,56 @@ int main(int argc, char* argv[]) {
     drawGeometry(texturedShader, instances, ws);
 
 
+
     /* IMGUI PORTION OF THE GAMELOOP */
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
-    {
-      static float f = 0.0f;
-      static int counter = 0;
 
-      ImGui::Begin("");
-
-      GuiLocation[0] = ImGui::GetWindowPos().x;
-      GuiLocation[1] = ImGui::GetWindowPos().y;
-      GuiLocation[2] = GuiLocation[0] + ImGui::GetWindowSize().x;
-      GuiLocation[3] = GuiLocation[1] + ImGui::GetWindowSize().y;
-
-      float color[3] = {0,0,255};
-      ImGui::ColorEdit3("Graph Color", color); // Edit 3 floats representing a color
-      initGridTexture(&tex0, color[0], color[1], color[2]);
-
+    // Elements of the GUI relevant to a specific function
+    for (int i = 0; i < functions.size(); i++) {
       // Get user input for function string
-      ImGui::Text("Function: ");
-      ImGui::SameLine();
-      ImGui::InputText("##fnxn_text", buf, IM_ARRAYSIZE(buf));
+      char fname[25];
+      sprintf(fname, "Function: %d", i);
+      ImGui::Begin(fname);
 
-      // Plot the user's input function when the button is pressed.
+      ImGui::ColorEdit4("Graph Color", functions[i].col);
+
+      char iname[25];
+      sprintf(iname, "##fnxn_text%d", i);
+      bool enter = ImGui::InputText(iname, functions[i].buf, 255, ImGuiInputTextFlags_EnterReturnsTrue);
+      if (strlen(functions[i].parsingError) > 1) {
+        ImGui::Text("Parse Error: %s", functions[i].parsingError);
+      }
+      if (ImGui::Button("Parse Input") || enter) {
+        if (functions[i].parseFunctionFromString(functions[i].buf)) {
+          Model* newModel = loadModelFromFunction(functions[i], &(models[i+1]->startVertex));
+          free(models[i+1]->vertices);
+          free(models[i+1]);
+          models[i+1] = newModel;
+          instances[i+3]->model = newModel;
+          // instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+          free(modelData);
+          modelData = makeVertexArray(models, totalNumVerts);
+          glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+        }
+      }
+      ImGui::Text("Parsed Eq: %s", functions[i].toString().c_str());
+      ImGui::End();
+    }
+    {
+      ImGui::Begin("Main Control");
+
+      // Add a window for a new function
       if (ImGui::Button("Graph A New Function")){
-          //Call function with text;
-          // and color?
-          printf("%s\n", buf);
           Function newFun = Function("", bounds, 0.05);
-          if (newFun.parseFunctionFromString(buf)) {
-            functions.push_back(newFun);
-            Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
-            models.push_back(newModel);
-            instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
-            free(modelData);
-            modelData = makeVertexArray(models, totalNumVerts);
-            glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
-          }
-          else {
-            ImGui::Text("Error parsing the input");
-          }
+          functions.push_back(newFun);
+          Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
+          models.push_back(newModel);
+          instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+          free(modelData);
+          modelData = makeVertexArray(models, totalNumVerts);
+          glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
 
       // Remove all graphed functions when the button is pressed.
@@ -366,7 +371,7 @@ int main(int argc, char* argv[]) {
       }
 
       // Take user input for functions to interpolate between.
-      ImGui::Text("Interpolate between two given function indices: ");
+      ImGui::Text("Interpolate between two functions: ");
       ImGui::PushItemWidth(100);
       ImGui::InputInt("##intpl_idx1", &intbuf1);
       if (intbuf1 < 1) {
@@ -405,6 +410,15 @@ int main(int argc, char* argv[]) {
       // Done with gui
       ImGui::End();
     }
+    ImGui::Render();
+
+
+    // update texture colors
+    for (int i = 0; i < functions.size(); i++) {
+      float* col = functions[i].col;
+      initGridTexture(&tex0, col[0], col[1], col[2], col[3]);
+    }
+
 
     // Update model for animation state
     if (ws.animating) {
@@ -437,7 +451,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* PERFORM THE ACTUAL RENDERING */
-    ImGui::Render();
+
     SDL_GL_MakeCurrent(window, context);
     glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -496,24 +510,25 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
   }
 }
 
-
-bool initGridTexture(GLuint* tex, char r, char g, char b) {
-  //printf("%d %d %d\n", r, g, b);
-  int w = 50; int h = 50;
-  SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_BGR24);
-  SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_BGR24);
+// load a texture for a graph corresponding to the given colors
+bool initGridTexture(GLuint* tex, float red, float green, float blue, float alpha) {
+  Uint8 r = red*255; Uint8 g = green*255; Uint8 b = blue*255; Uint8 a = alpha*255;
+  int w = 100; int h = 100;
+  SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
   for (int x = 0; x < w; x++) {
     for (int y = 0; y < h; y++) {
       Uint8* p = ((Uint8*) surface->pixels);
       if (x == 0 || y == 0 || x == w-1 || y == h-1) {
-        p[y*surface->pitch + x*3] = 0;
-        p[y*surface->pitch + x*3 + 1] = 0;
-        p[y*surface->pitch + x*3 + 2] = 0;
+        p[y*surface->pitch + x*4] = 255;
+        p[y*surface->pitch + x*4 + 1] = 0;
+        p[y*surface->pitch + x*4 + 2] = 0;
+        p[y*surface->pitch + x*4 + 3] = 0;
       }
       else {
-        p[y*surface->pitch + x*3] = b;
-        p[y*surface->pitch + x*3 + 1] = g;
-        p[y*surface->pitch + x*3 + 2] = r;
+        p[y*surface->pitch + x*4] = a;
+        p[y*surface->pitch + x*4 + 1] = b;
+        p[y*surface->pitch + x*4 + 2] = g;
+        p[y*surface->pitch + x*4 + 3] = r;
       }
 
     }
@@ -526,7 +541,7 @@ bool initGridTexture(GLuint* tex, char r, char g, char b) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   //Load the texture into memory
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w,surface->h, 0, GL_BGR,GL_UNSIGNED_BYTE, surface->pixels);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w,surface->h, 0, GL_RGBA,GL_UNSIGNED_INT_8_8_8_8, surface->pixels);
   glGenerateMipmap(GL_TEXTURE_2D); //Mip maps the texture
   SDL_FreeSurface(surface);
   return true;

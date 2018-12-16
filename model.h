@@ -72,6 +72,8 @@ struct Instance {
 struct WorldStates {
   bool animating;
   bool coordsOn;
+  bool dragging;
+  bool quit;
 };
 
 #endif
