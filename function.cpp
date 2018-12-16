@@ -108,6 +108,10 @@ void Function::scaleFunction(float s){
   }
 }
 void Function::interpolateFunctions(Function f, Function g, float t){
+  this->col[0] = f.col[0]*t + g.col[0]*(1-t);
+  this->col[1] = f.col[1]*t + g.col[1]*(1-t);
+  this->col[2] = f.col[2]*t + g.col[2]*(1-t);
+  this->col[3] = f.col[3]*t + g.col[3]*(1-t);
   this->setFunctionDegree(max(f.degree, g.degree));
   float fContribution; float gContribution;
   for (int i = 0; i <= this->degree; i++) {

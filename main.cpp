@@ -411,7 +411,7 @@ int main(int argc, char* argv[]) {
           itplModelStart = totalNumVerts * 8;
           Model* newModel = loadModelFromFunction(itplFun, &totalNumVerts);
           models.push_back(newModel);
-          instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), 0));
+          instances.push_back(new Instance(newModel, glm::vec3(0.2f, 0.3f, 0.1f), functions.size()-1));
           free(modelData);
           modelData = makeVertexArray(models, totalNumVerts);
           glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
@@ -423,13 +423,11 @@ int main(int argc, char* argv[]) {
     }
     ImGui::Render();
 
-
     // update texture colors
     for (int i = 0; i < functions.size(); i++) {
       float* col = functions[i].col;
       initGridTexture(textures, i, col, 50, 50);
     }
-
 
     // Update model for animation state
     if (ws.animating) {
@@ -448,6 +446,7 @@ int main(int argc, char* argv[]) {
         // Calculate a new model based on interpolation state
         functions.back().interpolateFunctions(functions[intbuf1-1],
           functions[intbuf2-1], (timePast-animateStartTime)/5.0f);
+
         int dummy = totalNumVerts - models.back()->numVertices;
         free(models.back()->vertices);
         free(models.back());
@@ -455,6 +454,7 @@ int main(int argc, char* argv[]) {
         Model* newModel = loadModelFromFunction(functions.back(), &dummy);
         models.push_back(newModel);
         instances.back()->model = newModel;
+
         copy(newModel->vertices, newModel->vertices + (newModel->numVertices * 8),
           modelData + itplModelStart);
         glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
