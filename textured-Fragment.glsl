@@ -10,6 +10,15 @@ out vec4 outColor;
 
 uniform sampler2D tex0;
 uniform sampler2D tex1;
+uniform sampler2D tex2;
+uniform sampler2D tex3;
+uniform sampler2D tex4;
+uniform sampler2D tex5;
+uniform sampler2D tex6;
+uniform sampler2D tex7;
+uniform sampler2D tex8;
+uniform sampler2D tex9;
+uniform sampler2D tex10;
 
 uniform int texID;
 
@@ -26,6 +35,42 @@ void main() {
   else if (texID == 1) {
     color = texture(tex1, texcoord).rgb;
     a = texture(tex1, texcoord).a;
+  }
+  else if (texID == 2) {
+    color = texture(tex2, texcoord).rgb;
+    a = texture(tex2, texcoord).a;
+  }
+  else if (texID == 3) {
+    color = texture(tex3, texcoord).rgb;
+    a = texture(tex3, texcoord).a;
+  }
+  else if (texID == 4) {
+    color = texture(tex4, texcoord).rgb;
+    a = texture(tex4, texcoord).a;
+  }
+  else if (texID == 5) {
+    color = texture(tex5, texcoord).rgb;
+    a = texture(tex5, texcoord).a;
+  }
+  else if (texID == 6) {
+    color = texture(tex6, texcoord).rgb;
+    a = texture(tex6, texcoord).a;
+  }
+  else if (texID == 7) {
+    color = texture(tex7, texcoord).rgb;
+    a = texture(tex7, texcoord).a;
+  }
+  else if (texID == 8) {
+    color = texture(tex8, texcoord).rgb;
+    a = texture(tex8, texcoord).a;
+  }
+  else if (texID == 9) {
+    color = texture(tex9, texcoord).rgb;
+    a = texture(tex9, texcoord).a;
+  }
+  else if (texID == 10) {
+    color = texture(tex10, texcoord).rgb;
+    a = texture(tex10, texcoord).a;
   }
   else{
     outColor = vec4(1,0,0,1);
