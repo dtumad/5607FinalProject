@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
   // create the function to be graphed;
   int bounds[4] = {-3,3,-3,3};
   vector<Function> functions;
-  functions.push_back(Function(".5xy", bounds, .05));
+  functions.push_back(Function(".5xy", bounds, .025));
 
 
 
@@ -340,7 +340,7 @@ int main(int argc, char* argv[]) {
 
       // Add a window for a new function
       if (ImGui::Button("Graph A New Function")){
-          Function newFun = Function("", bounds, 0.05);
+          Function newFun = Function("", bounds, 0.025);
           functions.push_back(newFun);
           Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
           models.push_back(newModel);
@@ -530,7 +530,7 @@ bool initGridTexture(GLuint* tex, int t, float col[4], int w, int h) {
     for (int y = 0; y < h; y++) {
       Uint8* p = ((Uint8*) surface->pixels);
       if (x == 0 || y == 0 || x == w-1 || y == h-1) {
-        p[y*surface->pitch + x*4] = 255;
+        p[y*surface->pitch + x*4] = 0;
         p[y*surface->pitch + x*4 + 1] = 0;
         p[y*surface->pitch + x*4 + 2] = 0;
         p[y*surface->pitch + x*4 + 3] = 0;

@@ -113,8 +113,8 @@ void Function::interpolateFunctions(Function f, Function g, float t){
   for (int i = 0; i <= this->degree; i++) {
     for (int j = 0; j <= this->degree; j++) {
       fContribution = 0; gContribution = 0;
-      if (i <= f.degree) fContribution = f.coefficients[i][j] * t;
-      if (j <= g.degree) gContribution = g.coefficients[i][j] * (1-t);
+      if (i <= f.degree && j <= f.degree) fContribution = f.coefficients[i][j] * t;
+      if (i <= g.degree && j <= g.degree) gContribution = g.coefficients[i][j] * (1-t);
       this->coefficients[i][j] = fContribution + gContribution;
     }
   }
