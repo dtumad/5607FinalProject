@@ -3,15 +3,12 @@
 TODO:
 
 
-Rotation doesn't work properly (especially left right when
-  not looking from even with the horizon), THIS IS KINDA TOUGH TO DO CORRECTLY, MAYBE DON'T BOTHER
+Rotation isn't intuitive when looking from above.
 
-Lighting is technichally one-sided, creates wierd shadow + specular interaction
-More noticable now with alpha blending
+Alpha blending has issues with triangle culling.
 
-Some implementation of GL_Lines primitive, for axis, tick marks, potentially grides, lines along functions
-  This is implemented as a hack using textures
+Lines would be better than planes to implement the axis.
 
-Animation of balls on surfaces? (simple implementation just send them in the direction of greatest desent)
+Calculation of gradient? could be used for animation of objects falling down.
 
-Fractals / recursive functions (Time to build model? Might not be able to be dynamic)
+Parametric functions specification would allow more interesting graphs

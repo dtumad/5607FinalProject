@@ -5,17 +5,19 @@ const char* INSTRUCTIONS =
 "Function inputs must correspond to the following grammar (whitespace is ignored):\n"
 "  E => T | FW\n"
 "  W => '(' T ')' | W '(' T ')'\n"
-"  T => F | F '+' T | F '-' T\n"
+"  T => F | T '+' F | T '-' F\n"
 "  F => NXY | FW\n"
 "  X => 'x^' I | 'x' | ''\n"
 "  Y => 'y^' I | 'y' | ''\n"
-"  N => float\n"
+"  N => float | ''\n"
 "  I => int\n"
 "Examples of things that work:\n"
 "  2 + .2(x+1)(y-1) - .25x\n"
 "  (x^3)(y+y+y+y+5)(.03)\n"
 "  .000005(x^2 + 3xy^10)(x + x + y)\n"
 "  (x^3(y^2)(x^3(y^2)))(.0001)\n"
+"  .5xy^2-xy\n"
+"  .01(x+1)(y-2)(x+3)(y-4)(y+2)(x-5)\n"
 "***************\n"
 ;
 
@@ -59,6 +61,7 @@ float timePast = 0;
 bool fullscreen = false;
 // camera coordinates and looking angle
 float cam_dist = 10;
+float lookx = 0; float looky = 0; float lookz = 0;
 // coslook and other variables are just used to cache values
 float look = 0; float coslook = cos(look); float sinlook = sin(look);
 float gaze = 0.2; float cosgaze = cos(gaze); float singaze = sin(gaze);
@@ -132,7 +135,7 @@ int main(int argc, char* argv[]) {
   // create the function to be graphed;
   int bounds[4] = {-3,3,-3,3};
   vector<Function> functions;
-  functions.push_back(Function(".5xy", bounds, .05));
+  functions.push_back(Function(".5xy", bounds, 20));
 
 
 
@@ -222,7 +225,7 @@ int main(int argc, char* argv[]) {
   float animateStartTime;
   int itplModelStart;
   //Turn on/off coordinate frame
-  ws.coordsOn = true;
+  ws.coordsOn = false;
   bool showing;
   bool toggleCoord;
   // States of user input window events
@@ -276,10 +279,10 @@ int main(int argc, char* argv[]) {
 
     timePast = SDL_GetTicks()/1000.f;
     glm::mat4 view = glm::lookAt(
-      glm::vec3(cam_dist*coslook*cosgaze,
-                cam_dist*sinlook*cosgaze,
-                cam_dist*singaze),  //Cam Position
-      glm::vec3(0.0f, 0.0f, 0.0f),  //Look at point
+      glm::vec3(lookx + cam_dist*coslook*cosgaze,
+                looky + cam_dist*sinlook*cosgaze,
+                lookz + cam_dist*singaze),  //Cam Position
+      glm::vec3(lookx, looky, lookz),  //Look at point
       glm::vec3(0.0f, 0.0f, cosgaze)); //Up
     glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
 
@@ -312,7 +315,7 @@ int main(int argc, char* argv[]) {
 
       // Add a window for a new function
       if (ImGui::Button("Graph A New Function")){
-          Function newFun = Function("", bounds, 0.05);
+          Function newFun = Function("", bounds, 20);
           functions.push_back(newFun);
           Model* newModel = loadModelFromFunction(newFun, &totalNumVerts);
           models.push_back(newModel);
@@ -346,7 +349,35 @@ int main(int argc, char* argv[]) {
       // Tell the user what functions are currently graphed.
       ImGui::Text("Currently Displaying:");
       for (int i=0; i<functions.size(); i++) {
+        if (ws.animating && i+1 == functions.size()) continue;
         ImGui::Text("  %d: %s", i+1, functions[i].toString().c_str());
+      }
+
+      // Take user input for functions to interpolate between.
+      bool boundChange = false;
+      ImGui::Text("Function Bounds: ");
+      ImGui::PushItemWidth(100);
+      boundChange |= ImGui::InputInt("x max##bnds1", &(bounds[0]));
+      ImGui::SameLine();
+      boundChange |= ImGui::InputInt("x max##bnds2", &(bounds[1]));
+      boundChange |= ImGui::InputInt("y min##bnds3", &(bounds[2]));
+      ImGui::SameLine();
+      boundChange |= ImGui::InputInt("y max##bnds4", &(bounds[3]));
+      ImGui::PopItemWidth();
+      if (boundChange) {
+        totalNumVerts = models[1]->startVertex;
+        for (int j = 0; j < functions.size(); j++) {
+          functions[j].min_x = bounds[0]; functions[j].max_x = bounds[1];
+          functions[j].min_y = bounds[2]; functions[j].max_y = bounds[3];
+          Model* newModel = loadModelFromFunction(functions[j], &totalNumVerts);
+          free(models[j+1]->vertices);
+          free(models[j+1]);
+          models[j+1] = newModel;
+          instances[j+3]->model = newModel;
+        }
+        free(modelData);
+        modelData = makeVertexArray(models, totalNumVerts);
+        glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
       }
 
       ImGui::Checkbox("Show Coordinate Frame", &ws.coordsOn);
@@ -355,20 +386,12 @@ int main(int argc, char* argv[]) {
       ImGui::Text("Interpolate between two functions: ");
       ImGui::PushItemWidth(100);
       ImGui::InputInt("##intpl_idx1", &intbuf1);
-      if (intbuf1 < 1) {
-        intbuf1 = 1;
-      }
-      else if (intbuf1 > functions.size()) {
-        intbuf1 = functions.size();
-      }
+      intbuf1 = intbuf1 < 1 ? 1 : intbuf1;
+      intbuf1 = intbuf1 > functions.size() ? functions.size() : intbuf1;
       ImGui::SameLine();
       ImGui::InputInt("##intpl_idx2", &intbuf2);
-      if (intbuf2 < 1) {
-        intbuf2 = 1;
-      }
-      else if (intbuf2 > functions.size()) {
-        intbuf2 = functions.size();
-      }
+      intbuf2 = intbuf2 < 1 ? 1 : intbuf2;
+      intbuf2 = intbuf2 > functions.size() ? functions.size() : intbuf2;
       ImGui::PopItemWidth();
 
       // Set starting states of an interpolation when the button is pressed.
@@ -395,25 +418,47 @@ int main(int argc, char* argv[]) {
 
 
       for (int i = 0; i < functions.size(); i++) {
+        if (ws.animating && i+1 == functions.size()) continue;
         // Get user input for function string
         char fname[22];
         sprintf(fname, "Function: %d", i + 1);
         if (ImGui::CollapsingHeader(fname, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
-
           char cname[22]; char dname[25];
+          char sname[37]; char iname[37];
           sprintf(cname, "##col%d", i);
           sprintf(dname, "Display##dis%d:", i);
+          sprintf(iname, "Input Equation##fnxn_text%d", i);
+          sprintf(sname, "Sampling Rate##smpl%d", i);
+
           ImGui::ColorEdit4(cname, functions[i].col);
           ImGui::Checkbox(dname, &(instances[i+3]->showing));
 
-          char iname[22];
-          sprintf(iname, "##fnxn_text%d", i);
-          bool enter = ImGui::InputText(iname, functions[i].buf, 255, ImGuiInputTextFlags_None);
+          int dummy = functions[i].sample_rate;
+          ImGui::Text("Samples per unit length:");
+          if (ImGui::InputInt(sname, &dummy, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+            dummy = dummy <= 0 ? 1 : dummy;
+            dummy = dummy >= 75 ? 75 : dummy;
+            functions[i].sample_rate = dummy;
+            totalNumVerts = models[1]->startVertex;
+            for (int j = 0; j < functions.size(); j++) {
+              functions[j].min_x = bounds[0]; functions[j].max_x = bounds[1];
+              functions[j].min_y = bounds[2]; functions[j].max_y = bounds[3];
+              Model* newModel = loadModelFromFunction(functions[j], &totalNumVerts);
+              free(models[j+1]->vertices);
+              free(models[j+1]);
+              models[j+1] = newModel;
+              instances[j+3]->model = newModel;
+            }
+            free(modelData);
+            modelData = makeVertexArray(models, totalNumVerts);
+            glBufferData(GL_ARRAY_BUFFER, totalNumVerts*8*sizeof(float), modelData, GL_STREAM_DRAW);
+          }
+
+          bool change = ImGui::InputText(iname, functions[i].buf, 255);
           if (strlen(functions[i].parsingError) > 1) {
             ImGui::Text("Parse Error: %s", functions[i].parsingError);
           }
-          ImGui::Text("Enter an equation:");
-          if (enter) {
+          if (change) {
             if (functions[i].parseFunctionFromString(functions[i].buf)) {
               Model* newModel = loadModelFromFunction(functions[i], &(models[i+1]->startVertex));
               free(models[i+1]->vertices);
@@ -498,11 +543,6 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
   GLint uniTexID = glGetUniformLocation(shaderProgram, "texID");
 
   for (Instance* inst : instances) {
-    // Hide non-animated functions during animation event
-    // if (ws.animating && !(inst==instances[0] || inst==instances[1] || inst==instances[2]
-    //   || inst==instances.back())) {
-    //     continue;
-    // }
 
     // Hide the first 3 instances, the frame planes, when coords are toggled off
     if(!ws.coordsOn && (inst==instances[0] || inst==instances[1] || inst==instances[2])) {
@@ -537,12 +577,13 @@ void drawGeometry(int shaderProgram, vector<Instance*> instances, WorldStates ws
 bool initGridTexture(GLuint* tex, int t, float col[4], int w, int h) {
   Uint8 r = col[0]*255; Uint8 g = col[1]*255;
   Uint8 b = col[2]*255; Uint8 a = col[3]*255;
+  // Uint8 m = (0.2126*r + 0.7152*g + 0.0722*b) > 128 ? 0 : 255;
   SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
   for (int x = 0; x < w; x++) {
     for (int y = 0; y < h; y++) {
       Uint8* p = ((Uint8*) surface->pixels);
       if (x == 0 || y == 0 || x == w-1 || y == h-1) {
-        p[y*surface->pitch + x*4] = 0;
+        p[y*surface->pitch + x*4] = 255;
         p[y*surface->pitch + x*4 + 1] = 0;
         p[y*surface->pitch + x*4 + 2] = 0;
         p[y*surface->pitch + x*4 + 3] = 0;

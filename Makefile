@@ -4,9 +4,9 @@ extras = imgui-master/imgui_demo.cpp
 objects = main.o model.o function.o imgui_opengl3.o imgui_sdl.o gl3w.o glad.o imgui.o imgui_widgets.o imgui_draw.o
 
 graph.out: $(objects) function.h model.h
-	g++ $(objects) $(flags) $(incl) -o graph.out
+	g++ -O3 $(objects) $(flags) $(incl) -o graph.out
 
-main.o: main.cpp
+main.o: main.cpp model.h function.h
 	g++ -O3 -g -c main.cpp
 
 model.o: model.cpp model.h function.h

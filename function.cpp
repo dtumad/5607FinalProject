@@ -212,7 +212,7 @@ void parseW(string w, Function* result) {
 // load a function with the contents of this T term
 // abuses the fact that '+' only nests when in an E
 void parseT(string t, Function* result) {
-  //printf("Given T: %s\n", t.c_str());
+  // printf("Given T: %s\n", t.c_str());
   if (t.empty()) {
     throw runtime_error("empty string as an P expression");
   }
@@ -220,7 +220,7 @@ void parseT(string t, Function* result) {
   size_t plus = string::npos;
   size_t minus = string::npos;
   // loop through to find an unwrapped add or subtract
-  for (int i = t.length()-1; i >= 0; i--) {
+  for (int i = t.length()-1; i > 0; i--) {
     switch (t[i]) {
       case '(': parenDepth--; break;
       case ')': parenDepth++; break;
@@ -239,7 +239,7 @@ void parseT(string t, Function* result) {
     parseF(t, result);
   }
   else {
-    size_t i = plus == string::npos ? minus : plus;
+    size_t i = min(plus, minus);
     Function* left = new Function();
     Function* right = new Function();
     parseF(t.substr(0, i), left);

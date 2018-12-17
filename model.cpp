@@ -32,12 +32,12 @@ Model* loadModel(char* modelFileName, int* startVertex) {
 Model* loadModelFromFunction(Function fun, int* startVertex) {
   Model* model = (Model*) malloc(sizeof(Model));
   int numFloats = (fun.max_x - fun.min_x)*(fun.max_y - fun.min_y);
-  numFloats *= 8*6*100/fun.sample_rate; //8 floats per vert, 6 verts per sample
+  numFloats *= 8*6*100*fun.sample_rate; //8 floats per vert, 6 verts per sample
   model->vertices = (float*) malloc(sizeof(float) * numFloats);
 
   int i = 0;
-  for (float x = fun.min_x; x < fun.max_x; x += fun.sample_rate) {
-    for (float y = fun.min_y; y < fun.max_y; y += fun.sample_rate) {
+  for (float x = fun.min_x; x < fun.max_x; x += 1.0f/fun.sample_rate) {
+    for (float y = fun.min_y; y < fun.max_y; y += 1.0f/fun.sample_rate) {
       helperMakeSample(model, fun, x, y, &i);
     }
   }
@@ -52,7 +52,7 @@ Model* loadModelFromFunction(Function fun, int* startVertex) {
 // creates two triangles to fill in a unit in the x-y plane
 void helperMakeSample(Model* model, Function fun, float x, float y, int* i) {
   float normal[3];
-  float d = fun.sample_rate;
+  float d = 1.0f/fun.sample_rate;
 
   // calculate normal vector for first triangle
   cross(normal, d, 0, fun.eval(x+d,y)-fun.eval(x,y), 0, d, fun.eval(x,y+d)-fun.eval(x,y));
@@ -77,8 +77,8 @@ void helperMakeVertex(Model* model, Function fun,
   model->vertices[(*i)++] = y;
   model->vertices[(*i)++] = fun.eval(x,y);
   // U and V
-  model->vertices[(*i)++] = x*3;
-  model->vertices[(*i)++] = y*3;
+  model->vertices[(*i)++] = x*2;
+  model->vertices[(*i)++] = y*2;
   // normal
   model->vertices[(*i)++] = n1;
   model->vertices[(*i)++] = n2;

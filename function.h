@@ -40,6 +40,10 @@ public:
     this->col[0] = (rand()%10)/10.0f;
     this->col[1] = (rand()%10)/10.0f;
     this->col[2] = (rand()%10)/10.0f;
+    float m = rand()%3;
+    if (m <= 1) this->col[0] = 1;
+    else if (m <= 2) this->col[1] = 1;
+    else this->col[2] = 1;
     this->col[3] = 1;
     strcpy(buf, "");
   }
@@ -55,11 +59,11 @@ public:
       E => T | FW
       W => '(' T ')' | W '(' T ')'
       T => F | F '+' T | F '-' T
-      F => NXY | FW
+      F => NXY | NYX | FW
       X => 'x^' I | 'x' | ''
       Y => 'y^' I | 'y' | ''
-      N => float (anything accepted by stof())
-      I => int (anything accepted by stoi())
+      N => float
+      I => int
     Examples of things that work:
       2 + .2(x+1)(y-1) - .25x
       (x^3)(y+y+y+y+5)(.03)
